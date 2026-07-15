@@ -38,6 +38,8 @@ function MatchesPage() {
     };
 
     fetchMatches();
+    const interval = setInterval(fetchMatches, 10000);
+    return () => clearInterval(interval);
   }, [user, isAuthenticated, isOnboarded, navigate]);
 
   if (loading) {

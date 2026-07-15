@@ -63,16 +63,26 @@ async function getUnreadChatIds(userId) {
     db.collection('chats').where('users', 'array-contains', userId).get()
   ));
 
-  const unreadChatIds = new Set();
-  chatsSnapshot.forEach(doc => {
+  const unreadChatIds = await Promise.all(chatsSnapshot.docs.map(async doc => {
     const chat = doc.data();
     const readBy = chat.readBy || [];
-    if (chat.lastSenderId && chat.lastSenderId !== userId && !readBy.includes(userId)) {
-      unreadChatIds.add(doc.id);
-    }
-  });
+    let lastSenderId = chat.lastSenderId;
 
-  return unreadChatIds;
+    // Older chats predate lastSenderId. Read their latest message so those
+    // conversations can still receive an unread indicator.
+    if (!lastSenderId) {
+      const latestMessages = await runFirestore(() => (
+        doc.ref.collection('messages').orderBy('createdAt', 'desc').limit(1).get()
+      ));
+      lastSenderId = latestMessages.docs[0]?.data().senderId;
+    }
+
+    return lastSenderId && lastSenderId !== userId && !readBy.includes(userId)
+      ? doc.id
+      : null;
+  }));
+
+  return new Set(unreadChatIds.filter(Boolean));
 }
 
 async function saveMatches(userId, matches) {

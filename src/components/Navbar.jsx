@@ -26,17 +26,10 @@ function Navbar() {
             >
               Matches
             </NavLink>
-            <NavLink 
-              to="/profile" 
-              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-            >
-              Profile
-            </NavLink>
-            
             {user?.photoURL && (
-              <div className="nav-avatar">
+              <Link to="/profile" className="nav-avatar" aria-label="Open your profile">
                 <img src={user.photoURL} alt={user.displayName} />
-              </div>
+              </Link>
             )}
             </div>
           )}

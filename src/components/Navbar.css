@@ -87,6 +87,7 @@
 .nav-avatar {
   width: 36px;
   height: 36px;
+  display: block;
   border-radius: 50%;
   overflow: hidden;
   border: 2px solid var(--border);

@@ -8,15 +8,37 @@ function OnboardingPage() {
   const { user, signInWithGoogle, storeYouTubeToken, setOnboarded } = useAuth();
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
   const [step, setStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStage, setAnalysisStage] = useState(0); // 0: auth, 1: fetching, 2: analyzing, 3: matching
   const [stats, setStats] = useState({ liked: 0, subs: 0 });
   const [matchCount, setMatchCount] = useState(0);
   const [error, setError] = useState(null);
+  const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
 
   useEffect(() => {
-    if (user || !googleButtonRef.current) return;
+    if (googleClientId) return;
+
+    const loadGoogleClientId = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/auth/google-client-id`);
+        if (!response.ok) throw new Error('Google sign-in is not configured.');
+
+        const { clientId } = await response.json();
+        if (!clientId) throw new Error('Google sign-in is not configured.');
+        setGoogleClientId(clientId);
+      } catch (err) {
+        console.error('Unable to load Google sign-in configuration', err);
+        setError('Google sign-in is not configured yet. Please try again later.');
+      }
+    };
+
+    loadGoogleClientId();
+  }, [apiUrl, googleClientId]);
+
+  useEffect(() => {
+    if (user || !googleClientId || !googleButtonRef.current) return;
 
     let cancelled = false;
     let interval;
@@ -25,7 +47,7 @@ function OnboardingPage() {
       if (cancelled || !window.google || !googleButtonRef.current) return false;
 
       window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id-for-dev',
+        client_id: googleClientId,
         callback: async (response) => {
           try {
             setError(null);
@@ -58,7 +80,7 @@ function OnboardingPage() {
       cancelled = true;
       if (interval) clearInterval(interval);
     };
-  }, [user, signInWithGoogle]);
+  }, [googleClientId, user, signInWithGoogle]);
 
   const handleConnectYouTube = () => {
     if (!window.google) {
@@ -66,8 +88,13 @@ function OnboardingPage() {
       return;
     }
 
+    if (!googleClientId) {
+      setError('Google sign-in is not configured yet. Please try again later.');
+      return;
+    }
+
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
-      client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id',
+      client_id: googleClientId,
       scope: 'https://www.googleapis.com/auth/youtube.readonly',
       callback: async (response) => {
         if (response.access_token) {
@@ -96,7 +123,7 @@ function OnboardingPage() {
     
     try {
       // 1. Fetch YouTube Data
-      const fetchRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/youtube/fetch`, {
+      const fetchRes = await fetch(`${apiUrl}/api/youtube/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -113,7 +140,7 @@ function OnboardingPage() {
       setAnalysisStage(2);
       
       // 2. Compute Matches
-      const matchRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/matches/compute`, {
+      const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

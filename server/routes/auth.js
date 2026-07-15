@@ -6,6 +6,19 @@ const { db } = require('../config/firebase');
 // In production, encrypt this and store in a proper database linked to the session
 const tokenStore = new Map();
 
+// A Google OAuth client ID is public by design and is needed by the browser to
+// start the Google Identity and YouTube permission flows. Keeping its source of
+// truth on the API avoids requiring a second, separately deployed Vercel value.
+router.get('/google-client-id', (req, res) => {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+
+  if (!clientId) {
+    return res.status(503).json({ error: 'Google sign-in is not configured.' });
+  }
+
+  res.json({ clientId });
+});
+
 router.post('/google', async (req, res) => {
   try {
     const { credential } = req.body;

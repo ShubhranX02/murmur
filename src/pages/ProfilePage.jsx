@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import './ProfilePage.css';
@@ -5,6 +6,12 @@ import './ProfilePage.css';
 function ProfilePage() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate, user]);
 
   const handleSignOut = () => {
     signOut();

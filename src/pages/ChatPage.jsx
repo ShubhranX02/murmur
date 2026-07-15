@@ -22,6 +22,12 @@ function ChatPage() {
   // Compute the shared chatId
   const chatId = user ? [user.id, matchId].sort().join('_') : null;
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate, user]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };

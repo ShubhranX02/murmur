@@ -1,0 +1,36 @@
+.percentage-ring-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.percentage-ring-svg {
+  transform: rotate(-90deg);
+}
+
+.percentage-ring-progress {
+  transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.percentage-ring-content {
+  position: absolute;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  filter: drop-shadow(0 0 8px rgba(229, 57, 53, 0.4));
+}
+
+.percentage-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.percentage-symbol {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--primary-light);
+  margin-left: 2px;
+}

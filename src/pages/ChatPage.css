@@ -81,7 +81,7 @@
   flex: 1;
   background-color: #0b0d12;
   background-image: var(--doodle-wallpaper);
-  background-size: 180px 180px;
+  background-size: var(--doodle-wallpaper-size);
   overflow-y: auto;
   padding: 24px;
   display: flex;

@@ -1,33 +1,60 @@
 let pipelineFn = null;
 let extractor = null;
+let extractorPromise = null;
+
+const EMBEDDING_BATCH_SIZE = 16;
 
 async function getExtractor() {
-  if (!extractor) {
-    if (!pipelineFn) {
-      const module = await import('@huggingface/transformers');
-      pipelineFn = module.pipeline;
-    }
-    console.log('Loading embedding model... (this may take a moment on first run)');
-    extractor = await pipelineFn('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-    console.log('Embedding model loaded successfully!');
+  if (extractor) return extractor;
+
+  // Reuse the same loading promise if several users begin onboarding together.
+  if (!extractorPromise) {
+    extractorPromise = (async () => {
+      if (!pipelineFn) {
+        const module = await import('@huggingface/transformers');
+        pipelineFn = module.pipeline;
+      }
+
+      console.log('Loading embedding model... (this may take a moment on first run)');
+      extractor = await pipelineFn('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+      console.log('Embedding model loaded successfully!');
+      return extractor;
+    })().catch(error => {
+      extractorPromise = null;
+      throw error;
+    });
   }
-  return extractor;
+
+  return extractorPromise;
 }
 
 async function generateEmbedding(text) {
-  const extract = await getExtractor();
-  const output = await extract(text, { pooling: 'mean', normalize: true });
-  return Array.from(output.data);
+  const [embedding] = await batchEmbed([text]);
+  return embedding;
 }
 
 async function batchEmbed(texts) {
+  if (!texts.length) return [];
+
+  const extract = await getExtractor();
   const embeddings = [];
-  for (let i = 0; i < texts.length; i++) {
-    embeddings.push(await generateEmbedding(texts[i]));
-    if ((i + 1) % 10 === 0) {
-      console.log(`Generated embeddings for ${i + 1}/${texts.length} items`);
+
+  // Sending a group of video descriptions to the model in one call avoids
+  // hundreds of sequential inference runs on Render's limited CPU.
+  for (let start = 0; start < texts.length; start += EMBEDDING_BATCH_SIZE) {
+    const batch = texts.slice(start, start + EMBEDDING_BATCH_SIZE);
+    const output = await extract(batch, { pooling: 'mean', normalize: true });
+    const dimensions = output.dims[output.dims.length - 1];
+    const values = output.data;
+
+    for (let index = 0; index < batch.length; index++) {
+      const offset = index * dimensions;
+      embeddings.push(Array.from(values.slice(offset, offset + dimensions)));
     }
+
+    console.log(`Generated embeddings for ${Math.min(start + batch.length, texts.length)}/${texts.length} items`);
   }
+
   return embeddings;
 }
 

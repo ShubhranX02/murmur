@@ -4,6 +4,8 @@ const { db } = require('../config/firebase');
 const { batchEmbed, createUserEmbedding, computeMatchScore } = require('../services/embedding');
 const { buildVideoText } = require('../services/youtube');
 
+const MAX_PROFILE_VIDEOS = 50;
+
 router.post('/compute', async (req, res) => {
   try {
     const { userId, likedVideos, subscriptions } = req.body;
@@ -14,11 +16,13 @@ router.post('/compute', async (req, res) => {
 
     console.log(`Computing profile for user ${userId}...`);
 
-    // 1. Generate text for each video
-    const videoTexts = likedVideos.map(buildVideoText);
+    // 1. Generate text for the 50 most recent liked videos returned by
+    // YouTube. This keeps the profile current and the Render request fast.
+    const profileVideos = likedVideos.slice(0, MAX_PROFILE_VIDEOS);
+    const videoTexts = profileVideos.map(buildVideoText);
     
     // 2. Generate embeddings for videos
-    console.log(`Generating embeddings for ${videoTexts.length} videos...`);
+    console.log(`Generating embeddings for ${videoTexts.length} of ${likedVideos.length} liked videos...`);
     const videoEmbeddings = await batchEmbed(videoTexts);
     
     // 3. Create user embedding

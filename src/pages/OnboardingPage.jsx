@@ -50,7 +50,7 @@ function OnboardingPage() {
     
     try {
       // 1. Fetch YouTube Data
-      const fetchRes = await fetch('http://localhost:3001/api/youtube/fetch', {
+      const fetchRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/youtube/fetch`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -67,7 +67,7 @@ function OnboardingPage() {
       setAnalysisStage(2);
       
       // 2. Compute Matches
-      const matchRes = await fetch('http://localhost:3001/api/matches/compute', {
+      const matchRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/matches/compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

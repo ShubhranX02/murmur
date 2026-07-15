@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async (credential) => {
     try {
-      const response = await fetch('http://localhost:3001/api/auth/google', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
     if (!user) throw new Error('Must be signed in to store YouTube token');
     
     try {
-      const response = await fetch('http://localhost:3001/api/auth/youtube-token', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/youtube-token`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

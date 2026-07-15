@@ -35,7 +35,7 @@ function ChatPage() {
 
     const fetchMessages = async () => {
       try {
-        const res = await fetch(`http://localhost:3001/api/chat/${chatId}/messages`);
+        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/${chatId}/messages`);
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages || []);
@@ -71,7 +71,7 @@ function ChatPage() {
     setMessages(prev => [...prev, tempMsg]);
 
     try {
-      await fetch('http://localhost:3001/api/chat/send', {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

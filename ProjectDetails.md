@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v1.8` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.9`, then `2.0`, and so on.
+The app currently displays version `v1.9` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `2.0`, then `2.1`, and so on.
 
 ---
 
@@ -183,7 +183,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 - `ChatBubble`: sent/received chat-message display.
 - `LoadingSpinner`: shared progress indicator.
 
-The active design system is defined by CSS custom properties in `src/index.css`: deep navy background, red YouTube-inspired accent colors, glass cards, animation helpers, and shared button styles.
+The active design system is defined by CSS custom properties in `src/index.css`: deep navy background, red YouTube-inspired accent colors, glass cards, animation helpers, and shared button styles. `ChatPage.css` adds a subtle, original dark doodle wallpaper to the conversation area.
 
 ---
 

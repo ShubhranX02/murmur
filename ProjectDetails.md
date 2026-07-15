@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v1.4` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.5` through `1.9`, then `2.0`, and so on.
+The app currently displays version `v1.5` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.6` through `1.9`, then `2.0`, and so on.
 
 ---
 
@@ -161,11 +161,12 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 `OnboardingPage.jsx` is intentionally structured as a single flow:
 
 1. If there is no user, it renders the Google Identity Services sign-in button.
-2. After sign-in, it shows the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
-3. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
-4. The app stores the short-lived access token in the backend’s in-memory token store.
-5. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
-6. It shows analysis progress and finally a match count.
+2. Returning users whose Firestore profile is already marked `onboarded` are sent directly to Matches after sign-in.
+3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
+4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
+5. The app stores the short-lived access token in the backend’s in-memory token store.
+6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
+7. It shows analysis progress and finally a match count.
 
 The Google client ID is resolved in this order:
 

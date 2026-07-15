@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
-  const { user, signInWithGoogle, storeYouTubeToken, setOnboarded } = useAuth();
+  const { user, isOnboarded, signInWithGoogle, storeYouTubeToken, setOnboarded } = useAuth();
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -16,6 +16,12 @@ function OnboardingPage() {
   const [matchCount, setMatchCount] = useState(0);
   const [error, setError] = useState(null);
   const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
+
+  useEffect(() => {
+    if (isOnboarded) {
+      navigate('/matches', { replace: true });
+    }
+  }, [isOnboarded, navigate]);
 
   useEffect(() => {
     if (googleClientId) return;

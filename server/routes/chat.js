@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { db, admin } = require('../config/firebase');
+const { db, FieldValue } = require('../config/firebase');
 
 router.post('/send', async (req, res) => {
   try {
@@ -17,7 +17,7 @@ router.post('/send', async (req, res) => {
     const messageData = {
       senderId,
       text,
-      createdAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp()
     };
 
     // Extract users from chatId (e.g., "id1_id2")
@@ -32,7 +32,7 @@ router.post('/send', async (req, res) => {
     await chatRef.set({
       users,
       lastMessage: text,
-      lastMessageAt: admin.firestore.FieldValue.serverTimestamp()
+      lastMessageAt: FieldValue.serverTimestamp()
     }, { merge: true });
 
     res.json({ success: true });

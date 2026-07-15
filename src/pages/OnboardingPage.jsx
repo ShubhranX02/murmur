@@ -129,7 +129,10 @@ function OnboardingPage() {
         body: JSON.stringify({ userId: user.id })
       });
       
-      if (!fetchRes.ok) throw new Error('Failed to fetch YouTube data');
+      if (!fetchRes.ok) {
+        const errorData = await fetchRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch YouTube data');
+      }
       const fetchData = await fetchRes.json();
       
       setStats({
@@ -150,7 +153,10 @@ function OnboardingPage() {
         })
       });
       
-      if (!matchRes.ok) throw new Error('Failed to compute matches');
+      if (!matchRes.ok) {
+        const errorData = await matchRes.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to compute matches');
+      }
       const matchData = await matchRes.json();
       
       setAnalysisStage(3);

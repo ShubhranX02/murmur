@@ -1,18 +1,41 @@
 const express = require('express');
 const router = express.Router();
-const { db } = require('../config/firebase');
+const { db, firebaseInitError } = require('../config/firebase');
 const { batchEmbed, createUserEmbedding, computeMatchScore } = require('../services/embedding');
 const { buildVideoText } = require('../services/youtube');
 
 const MAX_PROFILE_VIDEOS = 50;
 const MAX_MATCHES = 10;
 
+function firestoreUnavailable(res) {
+  const setupHint = firebaseInitError
+    ? ' Firebase Admin credentials are missing or invalid.'
+    : '';
+
+  return res.status(503).json({
+    error: `Firestore is unavailable.${setupHint} Add the Firebase service-account credential to the Render backend and make sure Firestore Database is created.`
+  });
+}
+
+async function runFirestore(operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    console.error('Firestore operation failed:', error);
+    const firestoreError = new Error('Firestore could not save or read your profile. Check the Render Firebase credential and confirm Firestore Database is enabled.');
+    firestoreError.status = 503;
+    throw firestoreError;
+  }
+}
+
 function getMatchId(userId, otherUserId) {
   return [userId, otherUserId].sort().join('_');
 }
 
 async function findTopMatches(userId, userProfile) {
-  const usersSnapshot = await db.collection('users').where('onboarded', '==', true).get();
+  const usersSnapshot = await runFirestore(() => (
+    db.collection('users').where('onboarded', '==', true).get()
+  ));
   const matches = [];
 
   usersSnapshot.forEach(doc => {
@@ -35,7 +58,7 @@ async function findTopMatches(userId, userProfile) {
 }
 
 async function saveMatches(userId, matches) {
-  await Promise.all(matches.map(match => (
+  await runFirestore(() => Promise.all(matches.map(match => (
     db.collection('matches').doc(match.matchId).set({
       users: [userId, match.userId],
       score: match.score,
@@ -44,7 +67,7 @@ async function saveMatches(userId, matches) {
       categoryScore: match.categoryScore,
       createdAt: new Date()
     })
-  )));
+  ))));
 }
 
 router.post('/compute', async (req, res) => {
@@ -56,7 +79,7 @@ router.post('/compute', async (req, res) => {
     }
 
     if (!db) {
-      return res.status(503).json({ error: 'Matching is unavailable because Firestore is not configured.' });
+      return firestoreUnavailable(res);
     }
 
     console.log(`Computing profile for user ${userId}...`);
@@ -112,7 +135,9 @@ router.post('/compute', async (req, res) => {
 
     // 6. Store the profile before matching so the user is eligible for every
     // later user's top-ten results.
-    await db.collection('users').doc(userId).set(profileData, { merge: true });
+    await runFirestore(() => (
+      db.collection('users').doc(userId).set(profileData, { merge: true })
+    ));
 
     // 7. Score every other onboarded user. There is deliberately no minimum
     // percentage threshold: each user receives up to ten ranked matches.
@@ -125,7 +150,9 @@ router.post('/compute', async (req, res) => {
 
   } catch (error) {
     console.error('Error computing matches:', error);
-    res.status(500).json({ error: 'Failed to compute matches' });
+    res.status(error.status || 500).json({
+      error: error.status ? error.message : 'Failed to compute matches. Check the Render logs for the underlying error.'
+    });
   }
 });
 
@@ -134,10 +161,10 @@ router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
     
     if (!db) {
-      return res.status(503).json({ error: 'Matching is unavailable because Firestore is not configured.' });
+      return firestoreUnavailable(res);
     }
 
-    const userDoc = await db.collection('users').doc(userId).get();
+    const userDoc = await runFirestore(() => db.collection('users').doc(userId).get());
     if (!userDoc.exists || !userDoc.data().onboarded) {
       return res.json({ matches: [] });
     }
@@ -149,7 +176,9 @@ router.get('/:userId', async (req, res) => {
 
   } catch (error) {
     console.error('Error fetching matches:', error);
-    res.status(500).json({ error: 'Failed to fetch matches' });
+    res.status(error.status || 500).json({
+      error: error.status ? error.message : 'Failed to fetch matches. Check the Render logs for the underlying error.'
+    });
   }
 });
 

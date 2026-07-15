@@ -1,8 +1,8 @@
 .matches-page {
-  padding: 40px;
-  max-width: 1200px;
-  margin: 0 auto;
+  min-height: calc(100vh - 70px);
+  padding: 40px max(20px, calc((100% - 1200px) / 2));
   width: 100%;
+  background: var(--bg-secondary);
 }
 
 .matches-page-loading {

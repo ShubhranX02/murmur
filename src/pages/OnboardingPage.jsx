@@ -100,7 +100,7 @@ function OnboardingPage() {
         if (response.access_token) {
           try {
             await storeYouTubeToken(response.access_token);
-            setStep(2);
+            setStep(1);
             startAnalysis(response.access_token);
           } catch (err) {
             setError("Failed to connect YouTube.");
@@ -158,14 +158,14 @@ function OnboardingPage() {
       
       setTimeout(() => {
         setOnboarded();
-        setStep(3);
+        setStep(2);
         setIsAnalyzing(false);
       }, 1500);
 
     } catch (err) {
       setError(err.message || 'An error occurred during analysis');
       setIsAnalyzing(false);
-      setStep(1); // Go back so they can retry
+      setStep(0); // Return to the welcome screen so they can retry
     }
   };
 
@@ -186,7 +186,7 @@ function OnboardingPage() {
               <img src={user?.photoURL || '/default-avatar.png'} alt="Profile" />
             </div>
             <h2>Welcome, {user?.displayName?.split(' ')[0]}!</h2>
-            <p className="subtitle">Let's connect your YouTube to find your people.</p>
+            <p className="subtitle">Connect YouTube to find people who share your taste.</p>
             
             <div className="info-cards">
               <div className="info-card">
@@ -205,32 +205,15 @@ function OnboardingPage() {
               </div>
             </div>
             
-            <button className="btn-primary" onClick={() => setStep(1)}>
-              Continue
+            {error && <div className="error-message">{error}</div>}
+
+            <button className="btn-primary btn-youtube" onClick={handleConnectYouTube}>
+              <span className="icon-yt">▶</span> Connect YouTube
             </button>
           </div>
         )}
 
         {step === 1 && (
-          <div className="onboarding-step step-connect animate-fade-in-up">
-            <div className="youtube-icon-lg">▶</div>
-            <h2>Connect Your YouTube</h2>
-            <p className="subtitle">
-              Grant read-only access to your YouTube profile. We can only view — never modify — your data.
-            </p>
-            
-            {error && <div className="error-message">{error}</div>}
-            
-            <button className="btn-primary btn-youtube" onClick={handleConnectYouTube}>
-              <span className="icon-yt">▶</span> Connect YouTube
-            </button>
-            <button className="btn-secondary mt-16" onClick={() => setStep(0)}>
-              Back
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
           <div className="onboarding-step step-analyze animate-fade-in-up">
             <h2>Analyzing your taste</h2>
             <p className="subtitle">This might take a moment. We're doing heavy lifting with AI.</p>
@@ -266,7 +249,7 @@ function OnboardingPage() {
           </div>
         )}
 
-        {step === 3 && (
+        {step === 2 && (
           <div className="onboarding-step step-complete animate-fade-in-up">
             <div className="celebration-emoji">🎉</div>
             <h2>You're all set!</h2>
@@ -285,7 +268,7 @@ function OnboardingPage() {
 
         {user && (
           <div className="step-indicators">
-            {[0, 1, 2, 3].map(i => (
+            {[0, 1, 2].map(i => (
               <div key={i} className={`step-dot ${step === i ? 'active' : ''} ${step > i ? 'completed' : ''}`}></div>
             ))}
           </div>

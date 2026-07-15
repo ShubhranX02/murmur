@@ -36,6 +36,20 @@
   margin-bottom: 32px;
 }
 
+/* Account sign-in */
+.step-signin {
+  justify-content: center;
+}
+
+.welcome-icon {
+  font-size: 64px;
+  margin-bottom: 20px;
+}
+
+.google-signin-button {
+  min-height: 44px;
+}
+
 /* Step 0: Welcome */
 .user-avatar-lg {
   width: 90px;

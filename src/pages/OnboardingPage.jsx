@@ -1,18 +1,64 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
-  const { user, storeYouTubeToken, setOnboarded } = useAuth();
+  const { user, signInWithGoogle, storeYouTubeToken, setOnboarded } = useAuth();
   const navigate = useNavigate();
+  const googleButtonRef = useRef(null);
   const [step, setStep] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStage, setAnalysisStage] = useState(0); // 0: auth, 1: fetching, 2: analyzing, 3: matching
   const [stats, setStats] = useState({ liked: 0, subs: 0 });
   const [matchCount, setMatchCount] = useState(0);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (user || !googleButtonRef.current) return;
+
+    let cancelled = false;
+    let interval;
+
+    const renderGoogleButton = () => {
+      if (cancelled || !window.google || !googleButtonRef.current) return false;
+
+      window.google.accounts.id.initialize({
+        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id-for-dev',
+        callback: async (response) => {
+          try {
+            setError(null);
+            await signInWithGoogle(response.credential);
+          } catch (err) {
+            console.error('Sign in failed', err);
+            setError('Google sign-in failed. Please try again.');
+          }
+        },
+      });
+
+      googleButtonRef.current.innerHTML = '';
+      window.google.accounts.id.renderButton(googleButtonRef.current, {
+        theme: 'filled_black',
+        size: 'large',
+        text: 'signin_with',
+        shape: 'pill',
+        width: 300,
+      });
+      return true;
+    };
+
+    if (!renderGoogleButton()) {
+      interval = setInterval(() => {
+        if (renderGoogleButton()) clearInterval(interval);
+      }, 100);
+    }
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
+  }, [user, signInWithGoogle]);
 
   const handleConnectYouTube = () => {
     if (!window.google) {
@@ -99,8 +145,15 @@ function OnboardingPage() {
   return (
     <div className="onboarding-page animate-fade-in">
       <div className="onboarding-container glass">
-        
-        {step === 0 && (
+        {!user ? (
+          <div className="onboarding-step step-signin animate-fade-in-up">
+            <div className="welcome-icon">👋</div>
+            <h2>Welcome to murmur</h2>
+            <p className="subtitle">Sign in with Google to start finding people who share your YouTube taste.</p>
+            {error && <div className="error-message">{error}</div>}
+            <div ref={googleButtonRef} className="google-signin-button" />
+          </div>
+        ) : step === 0 && (
           <div className="onboarding-step step-welcome animate-fade-in-up">
             <div className="user-avatar-lg">
               <img src={user?.photoURL || '/default-avatar.png'} alt="Profile" />
@@ -203,12 +256,13 @@ function OnboardingPage() {
           </div>
         )}
 
-        {/* Step Indicators */}
-        <div className="step-indicators">
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className={`step-dot ${step === i ? 'active' : ''} ${step > i ? 'completed' : ''}`}></div>
-          ))}
-        </div>
+        {user && (
+          <div className="step-indicators">
+            {[0, 1, 2, 3].map(i => (
+              <div key={i} className={`step-dot ${step === i ? 'active' : ''} ${step > i ? 'completed' : ''}`}></div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

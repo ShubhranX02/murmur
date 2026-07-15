@@ -4,48 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import './LandingPage.css';
 
 function LandingPage() {
-  const { isAuthenticated, isOnboarded, signInWithGoogle } = useAuth();
+  const { isAuthenticated, isOnboarded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(isOnboarded ? '/matches' : '/onboarding');
-      return;
-    }
-
-    const initGoogle = () => {
-      if (window.google) {
-        window.google.accounts.id.initialize({
-          // Make sure VITE_GOOGLE_CLIENT_ID is set in your .env
-          client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID || 'dummy-client-id-for-dev', 
-          callback: async (response) => {
-            try {
-              await signInWithGoogle(response.credential);
-              navigate('/onboarding');
-            } catch (error) {
-              console.error('Sign in failed', error);
-            }
-          },
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn'),
-          { theme: 'filled_black', size: 'large', text: 'signin_with', shape: 'pill', width: 300 }
-        );
-      }
-    };
-
-    if (window.google) {
-      initGoogle();
-    } else {
-      const interval = setInterval(() => {
-        if (window.google) {
-          initGoogle();
-          clearInterval(interval);
-        }
-      }, 100);
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, isOnboarded, navigate, signInWithGoogle]);
+    if (isAuthenticated) navigate(isOnboarded ? '/matches' : '/onboarding');
+  }, [isAuthenticated, isOnboarded, navigate]);
 
   return (
     <div className="landing-page">
@@ -67,9 +31,11 @@ function LandingPage() {
           </p>
           
           <div className="signin-container animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
-            <div id="google-signin-btn"></div>
+            <button className="btn-primary" onClick={() => navigate('/onboarding')}>
+              Get Started
+            </button>
             <p className="privacy-note">
-              <span className="lock-icon">🔒</span> Your data stays private. We only read your likes & subscriptions.
+              <span className="lock-icon">🔒</span> Sign in and connect YouTube in the next step.
             </p>
           </div>
         </div>

@@ -31,10 +31,29 @@
   -webkit-text-fill-color: transparent;
 }
 
+.navbar-actions,
 .navbar-links {
   display: flex;
   align-items: center;
+}
+
+.navbar-actions {
+  gap: 20px;
+}
+
+.navbar-links {
   gap: 32px;
+}
+
+.app-version {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 5px 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .nav-link {
@@ -92,5 +111,9 @@
   
   .navbar-links {
     gap: 20px;
+  }
+
+  .navbar-actions {
+    gap: 12px;
   }
 }

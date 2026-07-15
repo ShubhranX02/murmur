@@ -1,5 +1,6 @@
 import { Link, NavLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { APP_VERSION } from '../config/appVersion';
 import './Navbar.css';
 
 function Navbar() {
@@ -12,8 +13,13 @@ function Navbar() {
           murmur
         </Link>
 
-        {isAuthenticated && (
-          <div className="navbar-links">
+        <div className="navbar-actions">
+          <span className="app-version" aria-label={`Murmur version ${APP_VERSION}`}>
+            v{APP_VERSION}
+          </span>
+
+          {isAuthenticated && (
+            <div className="navbar-links">
             <NavLink 
               to="/matches" 
               className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
@@ -32,8 +38,9 @@ function Navbar() {
                 <img src={user.photoURL} alt={user.displayName} />
               </div>
             )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

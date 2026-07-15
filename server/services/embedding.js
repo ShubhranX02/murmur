@@ -59,6 +59,10 @@ async function batchEmbed(texts) {
 }
 
 function cosineSimilarity(vecA, vecB) {
+  if (!Array.isArray(vecA) || !Array.isArray(vecB) || vecA.length === 0 || vecA.length !== vecB.length) {
+    return 0;
+  }
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;

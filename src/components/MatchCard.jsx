@@ -42,7 +42,7 @@ function MatchCard({ match, delay = '0s' }) {
       
       <button 
         className="btn-primary start-chat-btn"
-        onClick={() => navigate(`/chat/${match.matchId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL)}&score=${match.score}`)}
+        onClick={() => navigate(`/chat/${match.userId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL || '')}&score=${match.score}`)}
       >
         <span className="icon">💬</span> Start Chat
       </button>

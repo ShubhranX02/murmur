@@ -5,6 +5,47 @@ const { batchEmbed, createUserEmbedding, computeMatchScore } = require('../servi
 const { buildVideoText } = require('../services/youtube');
 
 const MAX_PROFILE_VIDEOS = 50;
+const MAX_MATCHES = 10;
+
+function getMatchId(userId, otherUserId) {
+  return [userId, otherUserId].sort().join('_');
+}
+
+async function findTopMatches(userId, userProfile) {
+  const usersSnapshot = await db.collection('users').where('onboarded', '==', true).get();
+  const matches = [];
+
+  usersSnapshot.forEach(doc => {
+    const otherUserId = doc.id;
+    if (otherUserId === userId) return;
+
+    const otherUser = doc.data();
+    const matchResult = computeMatchScore(userProfile, otherUser);
+
+    matches.push({
+      matchId: getMatchId(userId, otherUserId),
+      userId: otherUserId,
+      displayName: otherUser.displayName || 'Murmur member',
+      photoURL: otherUser.photoURL || null,
+      ...matchResult
+    });
+  });
+
+  return matches.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES);
+}
+
+async function saveMatches(userId, matches) {
+  await Promise.all(matches.map(match => (
+    db.collection('matches').doc(match.matchId).set({
+      users: [userId, match.userId],
+      score: match.score,
+      embeddingScore: match.embeddingScore,
+      subscriptionScore: match.subscriptionScore,
+      categoryScore: match.categoryScore,
+      createdAt: new Date()
+    })
+  )));
+}
 
 router.post('/compute', async (req, res) => {
   try {
@@ -12,6 +53,10 @@ router.post('/compute', async (req, res) => {
     
     if (!userId || !likedVideos || !subscriptions) {
       return res.status(400).json({ error: 'Missing required data' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Matching is unavailable because Firestore is not configured.' });
     }
 
     console.log(`Computing profile for user ${userId}...`);
@@ -65,61 +110,16 @@ router.post('/compute', async (req, res) => {
       }
     };
 
-    // 6. Store user profile
-    if (db) {
-      await db.collection('users').doc(userId).set(profileData, { merge: true });
-    }
+    // 6. Store the profile before matching so the user is eligible for every
+    // later user's top-ten results.
+    await db.collection('users').doc(userId).set(profileData, { merge: true });
 
-    // 7. Fetch other users and compute matches
-    let matches = [];
-    if (db) {
-      console.log('Fetching other users to compute matches...');
-      const usersSnapshot = await db.collection('users').where('onboarded', '==', true).get();
-      
-      const matchPromises = [];
-
-      usersSnapshot.forEach(doc => {
-        const otherUserId = doc.id;
-        if (otherUserId === userId) return;
-
-        const otherUser = doc.data();
-        
-        // Ensure other user has embedding
-        if (!otherUser.embedding || otherUser.embedding.length === 0) return;
-
-        // 8. Compute score
-        const matchResult = computeMatchScore(profileData, otherUser);
-        
-        // 9. Store match
-        const sortedIds = [userId, otherUserId].sort();
-        const matchId = sortedIds.join('_');
-        
-        const matchDoc = {
-          users: [userId, otherUserId],
-          score: matchResult.score,
-          embeddingScore: matchResult.embeddingScore,
-          subscriptionScore: matchResult.subscriptionScore,
-          categoryScore: matchResult.categoryScore,
-          createdAt: new Date()
-        };
-
-        matchPromises.push(db.collection('matches').doc(matchId).set(matchDoc));
-        
-        matches.push({
-          matchId,
-          userId: otherUserId,
-          displayName: otherUser.displayName,
-          photoURL: otherUser.photoURL,
-          ...matchResult
-        });
-      });
-
-      await Promise.all(matchPromises);
-      console.log(`Generated ${matches.length} matches`);
-    }
-
-    // Sort matches descending by score
-    matches.sort((a, b) => b.score - a.score);
+    // 7. Score every other onboarded user. There is deliberately no minimum
+    // percentage threshold: each user receives up to ten ranked matches.
+    console.log('Finding top matches...');
+    const matches = await findTopMatches(userId, profileData);
+    await saveMatches(userId, matches);
+    console.log(`Generated ${matches.length} top matches`);
 
     res.json({ matches });
 
@@ -134,46 +134,17 @@ router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
     
     if (!db) {
+      return res.status(503).json({ error: 'Matching is unavailable because Firestore is not configured.' });
+    }
+
+    const userDoc = await db.collection('users').doc(userId).get();
+    if (!userDoc.exists || !userDoc.data().onboarded) {
       return res.json({ matches: [] });
     }
 
-    const matchesSnapshot = await db.collection('matches')
-      .where('users', 'array-contains', userId)
-      .get();
-
-    const matches = [];
-    const userFetchPromises = [];
-
-    matchesSnapshot.forEach(doc => {
-      const data = doc.data();
-      const otherUserId = data.users.find(id => id !== userId);
-      
-      if (otherUserId) {
-        // Fetch other user's profile
-        const promise = db.collection('users').doc(otherUserId).get().then(userDoc => {
-          if (userDoc.exists) {
-            const userData = userDoc.data();
-            matches.push({
-              matchId: doc.id,
-              userId: otherUserId,
-              displayName: userData.displayName,
-              photoURL: userData.photoURL,
-              score: data.score,
-              embeddingScore: data.embeddingScore,
-              subscriptionScore: data.subscriptionScore,
-              categoryScore: data.categoryScore,
-              createdAt: data.createdAt
-            });
-          }
-        });
-        userFetchPromises.push(promise);
-      }
-    });
-
-    await Promise.all(userFetchPromises);
-    
-    matches.sort((a, b) => b.score - a.score);
-    
+    // Calculate from current profiles instead of relying on stale or missing
+    // match documents. This also lets previously onboarded users see new users.
+    const matches = await findTopMatches(userId, userDoc.data());
     res.json({ matches });
 
   } catch (error) {

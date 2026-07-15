@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v1.1` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.2` through `1.9`, then `2.0`, and so on.
+The app currently displays version `v1.2` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.3` through `1.9`, then `2.0`, and so on.
 
 ---
 
@@ -226,7 +226,7 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds profile, saves it, calculates matches, returns them |
-| `GET` | `/:userId` | None | Returns stored matches for the specified user |
+| `GET` | `/:userId` | None | Calculates and returns the user’s current top 10 matches |
 
 The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
 
@@ -280,7 +280,7 @@ sigmoid = 1 / (1 + exp(-8 * (rawScore - 0.3)))
 percentage = round(sigmoid * 100)
 ```
 
-The result stores the overall `score` and the three contributing percentages.
+The result stores the overall `score` and the three contributing percentages. There is no minimum percentage threshold: every onboarded user can see up to their 10 highest-ranked eligible users.
 
 ---
 
@@ -402,14 +402,13 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 1. **Authenticate API requests properly.** `server/routes/auth.js` parses Google ID-token payloads without verifying token signatures. `server/middleware/auth.js` also only decodes bearer tokens and is not mounted on routes. Use Firebase Auth or Google token verification on every protected endpoint.
 2. **Protect authorization boundaries.** The current chat, match, and YouTube endpoints trust submitted `userId`/`senderId` values. A user can potentially access or write another user’s resources.
 3. **Replace the in-memory YouTube token store.** Tokens disappear whenever Render restarts and do not work across multiple instances. Store encrypted refresh-token/session information securely, or request fresh access tokens as needed.
-4. **Fix chat identifier handling.** `MatchCard` routes with a match document ID, while `ChatPage` currently treats the route parameter as a user ID when constructing `chatId`. This can produce inconsistent chat IDs. Pass the other user’s ID explicitly or use the match ID consistently.
-5. **Synchronize profile data in the frontend.** After onboarding, `AuthContext.setOnboarded()` updates only `onboarded`; it does not update local `youtubeData`, so profile statistics may not reflect the stored backend profile until the next sign-in.
-6. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
-7. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
-8. **Define privacy and retention policy.** Users are sharing sensitive viewing preferences. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
-9. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
-10. **Scale matching.** Current matching loads every onboarded user and computes scores in one request. This will not scale. Use vector search/ANN retrieval, queued jobs, and thresholded candidate matching.
-11. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
+4. **Synchronize profile data in the frontend.** After onboarding, `AuthContext.setOnboarded()` updates only `onboarded`; it does not update local `youtubeData`, so profile statistics may not reflect the stored backend profile until the next sign-in.
+5. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
+6. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
+7. **Define privacy and retention policy.** Users are sharing sensitive viewing preferences. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
+8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
+9. **Scale matching.** Current matching loads every onboarded user and computes scores in one request. This will not scale. Use vector search/ANN retrieval and queued jobs to produce candidates efficiently.
+10. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
 
 ---
 

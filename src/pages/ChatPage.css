@@ -79,7 +79,9 @@
 
 .messages-area {
   flex: 1;
-  background: var(--bg-secondary);
+  background-color: #0b0d12;
+  background-image: var(--doodle-wallpaper);
+  background-size: 180px 180px;
   overflow-y: auto;
   padding: 24px;
   display: flex;

@@ -45,6 +45,14 @@ function ChatPage() {
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages || []);
+
+          if (data.messages?.some(message => message.senderId !== user.id)) {
+            fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/${chatId}/read`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userId: user.id })
+            }).catch(err => console.error('Failed to mark chat as read:', err));
+          }
         }
       } catch (err) {
         console.error('Failed to fetch messages:', err);

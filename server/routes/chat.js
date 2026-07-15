@@ -32,7 +32,9 @@ router.post('/send', async (req, res) => {
     await chatRef.set({
       users,
       lastMessage: text,
-      lastMessageAt: FieldValue.serverTimestamp()
+      lastMessageAt: FieldValue.serverTimestamp(),
+      lastSenderId: senderId,
+      readBy: [senderId]
     }, { merge: true });
 
     res.json({ success: true });
@@ -40,6 +42,30 @@ router.post('/send', async (req, res) => {
   } catch (error) {
     console.error('Error sending message:', error);
     res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
+router.post('/:chatId/read', async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not configured' });
+    }
+
+    await db.collection('chats').doc(chatId).set({
+      readBy: FieldValue.arrayUnion(userId)
+    }, { merge: true });
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking chat as read:', error);
+    res.status(500).json({ error: 'Failed to mark chat as read' });
   }
 });
 

@@ -54,7 +54,25 @@ async function findTopMatches(userId, userProfile) {
     });
   });
 
-  return matches.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES);
+  const topMatches = matches.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES);
+  return topMatches.sort((a, b) => a.score - b.score);
+}
+
+async function getUnreadChatIds(userId) {
+  const chatsSnapshot = await runFirestore(() => (
+    db.collection('chats').where('users', 'array-contains', userId).get()
+  ));
+
+  const unreadChatIds = new Set();
+  chatsSnapshot.forEach(doc => {
+    const chat = doc.data();
+    const readBy = chat.readBy || [];
+    if (chat.lastSenderId && chat.lastSenderId !== userId && !readBy.includes(userId)) {
+      unreadChatIds.add(doc.id);
+    }
+  });
+
+  return unreadChatIds;
 }
 
 async function saveMatches(userId, matches) {
@@ -171,8 +189,16 @@ router.get('/:userId', async (req, res) => {
 
     // Calculate from current profiles instead of relying on stale or missing
     // match documents. This also lets previously onboarded users see new users.
-    const matches = await findTopMatches(userId, userDoc.data());
-    res.json({ matches });
+    const [matches, unreadChatIds] = await Promise.all([
+      findTopMatches(userId, userDoc.data()),
+      getUnreadChatIds(userId)
+    ]);
+    res.json({
+      matches: matches.map(match => ({
+        ...match,
+        hasUnreadMessages: unreadChatIds.has(match.matchId)
+      }))
+    });
 
   } catch (error) {
     console.error('Error fetching matches:', error);

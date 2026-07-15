@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v1.6` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.7` through `1.9`, then `2.0`, and so on.
+The app currently displays version `v1.7` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for each future change: `1.8` through `1.9`, then `2.0`, and so on.
 
 ---
 
@@ -232,7 +232,7 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds profile, saves it, calculates matches, returns them |
-| `GET` | `/:userId` | None | Calculates and returns the user’s current top 10 matches |
+| `GET` | `/:userId` | None | Calculates and returns the user’s current top 10 matches, ordered by ascending percentage and annotated with unread-chat status |
 
 The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
 
@@ -242,6 +242,7 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 | --- | --- | --- | --- |
 | `POST` | `/send` | `{ "chatId", "senderId", "text" }` | Creates a message and updates chat metadata |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
+| `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
 
 ---
 
@@ -337,7 +338,9 @@ The backend writes:
 {
   users: [userIdA, userIdB],
   lastMessage,
-  lastMessageAt
+  lastMessageAt,
+  lastSenderId,
+  readBy
 }
 
 // Message document
@@ -348,7 +351,7 @@ The backend writes:
 }
 ```
 
-Chat messages are retrieved with polling every three seconds in the frontend. Firestore real-time listeners are not currently used.
+Chat messages are retrieved with polling every three seconds in the frontend. The matches list highlights chats whose latest message was sent by the other person and has not been read. Firestore real-time listeners are not currently used.
 
 ---
 

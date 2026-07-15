@@ -1,52 +1,46 @@
 import { useNavigate } from 'react-router-dom';
-import PercentageRing from './PercentageRing';
 import './MatchCard.css';
 
 function MatchCard({ match, delay = '0s' }) {
   const navigate = useNavigate();
   
   return (
-    <div 
-      className="match-card glass animate-fade-in-up" 
+    <article
+      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''}`}
       style={{ animationDelay: delay }}
     >
-      <div className="match-card-header">
-        <div className="match-avatar-container">
-          <img 
-            src={match.photoURL || '/default-avatar.png'} 
-            alt={match.displayName} 
-            className="match-avatar"
-          />
-        </div>
+      <div className="match-avatar-container">
+        <img
+          src={match.photoURL || '/default-avatar.png'}
+          alt={match.displayName}
+          className="match-avatar"
+        />
+        {match.hasUnreadMessages && <span className="unread-dot" aria-label="New message" />}
+      </div>
+
+      <div className="match-person">
         <h3 className="match-name">{match.displayName}</h3>
+        {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
       </div>
       
-      <div className="match-score-section">
-        <PercentageRing percentage={match.score} size={110} />
-      </div>
-      
-      <div className="match-details">
-        <div className="detail-row">
-          <span>Content Vibe</span>
-          <span>{match.embeddingScore}%</span>
-        </div>
-        <div className="detail-row">
-          <span>Subscriptions</span>
-          <span>{match.subscriptionScore}%</span>
-        </div>
-        <div className="detail-row">
-          <span>Categories</span>
-          <span>{match.categoryScore}%</span>
+      <div className="match-score-wrapper">
+        <span className="match-score" tabIndex="0" aria-label={`${match.score}% match. Hover for score details.`}>
+          {match.score}%
+        </span>
+        <div className="match-score-tooltip" role="tooltip">
+          <div><span>Content vibe</span><strong>{match.embeddingScore}%</strong></div>
+          <div><span>Subscriptions</span><strong>{match.subscriptionScore}%</strong></div>
+          <div><span>Categories</span><strong>{match.categoryScore}%</strong></div>
         </div>
       </div>
       
       <button 
-        className="btn-primary start-chat-btn"
+        className="btn-primary message-match-btn"
         onClick={() => navigate(`/chat/${match.userId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL || '')}&score=${match.score}`)}
       >
-        <span className="icon">💬</span> Start Chat
+        Message
       </button>
-    </div>
+    </article>
   );
 }
 

@@ -71,8 +71,8 @@ function MatchesPage() {
           <p>We're still growing the Murmur community. Check back soon for new connections!</p>
         </div>
       ) : (
-        <div className="matches-grid">
-          {matches.map((match, index) => (
+        <div className="matches-list">
+          {[...matches].sort((a, b) => a.score - b.score).map((match, index) => (
             <MatchCard 
               key={match.matchId} 
               match={match} 

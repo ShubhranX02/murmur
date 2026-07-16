@@ -70,8 +70,7 @@ function ActivityFeedPage() {
           <div className="activity-error glass">{error}</div>
         ) : activities.length === 0 ? (
           <div className="activity-empty glass">
-            <p>No active conversations from your matches.</p>
-            <p className="text-muted mt-16">Click the button above to start one!</p>
+            <p>There is no ongoing conversations. Start one!</p>
           </div>
         ) : (
           <div className="activity-grid">

@@ -102,13 +102,14 @@ function computeMatchScore(userA, userB) {
   const clampedEmbSim = Math.max(0, Math.min(1, embSim));
   const clampedCatSim = Math.max(0, Math.min(1, catSim));
   
-  const rawScore = (0.6 * clampedEmbSim) + (0.4 * clampedCatSim);
-  const score = Math.round(rawScore * 100);
+  const embeddingScore = Math.round(clampedEmbSim * 100);
+  const categoryScore = Math.round(clampedCatSim * 100);
+  const score = Math.round((0.6 * embeddingScore) + (0.4 * categoryScore));
 
   return {
     score,
-    embeddingScore: Math.round(clampedEmbSim * 100),
-    categoryScore: Math.round(clampedCatSim * 100)
+    embeddingScore,
+    categoryScore
   };
 }
 

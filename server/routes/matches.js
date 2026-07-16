@@ -160,14 +160,12 @@ router.post('/compute', async (req, res) => {
       db.collection('users').doc(userId).set(profileData, { merge: true })
     ));
 
-    // 7. Score every other onboarded user. There is deliberately no minimum
-    // percentage threshold: each user receives up to ten ranked matches.
     console.log('Finding top matches...');
     const matches = await findTopMatches(userId, profileData);
     await saveMatches(userId, matches);
     console.log(`Generated ${matches.length} top matches`);
 
-    res.json({ matches });
+    res.json({ matches, profileData });
 
   } catch (error) {
     console.error('Error computing matches:', error);

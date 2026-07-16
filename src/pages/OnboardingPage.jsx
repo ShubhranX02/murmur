@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
-  const { user, isOnboarded, signInWithGoogle, storeYouTubeToken, setOnboarded } = useAuth();
+  const { user, isOnboarded, signInWithGoogle, storeYouTubeToken, updateUser, setOnboarded } = useAuth();
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -169,7 +169,11 @@ function OnboardingPage() {
       setMatchCount(matchData.matches?.length || 0);
       
       setTimeout(() => {
-        setOnboarded();
+        if (matchData.profileData) {
+          updateUser({ ...matchData.profileData, onboarded: true });
+        } else {
+          setOnboarded();
+        }
         setStep(2);
         setIsAnalyzing(false);
       }, 1500);

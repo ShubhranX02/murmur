@@ -64,7 +64,9 @@ router.post('/google', async (req, res) => {
           updateData.onboarded = false;
           updateData.createdAt = new Date();
         } else {
-          userObj.onboarded = doc.data().onboarded || false;
+          const docData = doc.data();
+          userObj = { ...docData, ...userObj }; // merge Firestore data
+          userObj.onboarded = docData.onboarded || false;
         }
 
         await userRef.set(updateData, { merge: true });

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import CategoryRingChart from '../components/CategoryRingChart';
 import './ProfilePage.css';
 
 function ProfilePage() {
@@ -49,24 +50,14 @@ function ProfilePage() {
               
               <div className="stat-card glass">
                 <span className="stat-icon">📺</span>
-                <span className="stat-value">{user.youtubeData?.subscriptionCount || 0}</span>
-                <span className="stat-label">Subscriptions Synced</span>
+                <span className="stat-value">{Object.keys(user.categoryDistribution || {}).length}</span>
+                <span className="stat-label">Categories Analysed</span>
               </div>
             </div>
 
             <div className="categories-section glass">
-              <h3>Your Top Vibe Categories</h3>
-              {topCategories.length > 0 ? (
-                <div className="categories-flex">
-                  {topCategories.map((cat, index) => (
-                    <div key={index} className="category-chip">
-                      {cat}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-muted">Not enough data to determine top categories yet.</p>
-              )}
+              <h3>Your Categories</h3>
+              <CategoryRingChart distribution={user.categoryDistribution} />
             </div>
           </>
         ) : (

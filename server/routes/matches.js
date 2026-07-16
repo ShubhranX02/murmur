@@ -91,7 +91,6 @@ async function saveMatches(userId, matches) {
       users: [userId, match.userId],
       score: match.score,
       embeddingScore: match.embeddingScore,
-      subscriptionScore: match.subscriptionScore,
       categoryScore: match.categoryScore,
       createdAt: new Date()
     })
@@ -141,16 +140,10 @@ router.post('/compute', async (req, res) => {
       });
     }
 
-    // 5. Extract subscription IDs
-    const subscriptionIds = subscriptions
-      .map(s => s.snippet?.resourceId?.channelId)
-      .filter(Boolean);
-
     // Prepare profile data
     const profileData = {
       embedding: userEmbedding,
       categoryDistribution,
-      subscriptionIds,
       onboarded: true,
       youtubeData: {
         likedVideoCount: likedVideos.length,

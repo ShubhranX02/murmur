@@ -53,7 +53,6 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false }) {
         </span>
         <div className="match-score-tooltip" role="tooltip">
           <div><span>Content vibe</span><strong>{match.embeddingScore}%</strong></div>
-          <div><span>Subscriptions</span><strong>{match.subscriptionScore}%</strong></div>
           <div><span>Categories</span><strong>{match.categoryScore}%</strong></div>
         </div>
       </div>

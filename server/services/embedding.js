@@ -75,23 +75,13 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-function jaccardSimilarity(setA, setB) {
-  const intersection = new Set([...setA].filter(x => setB.has(x)));
-  const union = new Set([...setA, ...setB]);
-  if (union.size === 0) return 0;
-  return intersection.size / union.size;
-}
+
 
 function computeMatchScore(userA, userB) {
   // 1. Embedding Similarity
   const embSim = cosineSimilarity(userA.embedding || [], userB.embedding || []);
 
-  // 2. Subscription Similarity
-  const subsA = new Set(userA.subscriptionIds || []);
-  const subsB = new Set(userB.subscriptionIds || []);
-  const subSim = jaccardSimilarity(subsA, subsB);
-
-  // 3. Category Similarity
+  // 2. Category Similarity
   const catDistA = userA.categoryDistribution || {};
   const catDistB = userB.categoryDistribution || {};
   const allCategories = new Set([...Object.keys(catDistA), ...Object.keys(catDistB)]);
@@ -107,8 +97,8 @@ function computeMatchScore(userA, userB) {
   const catSim = cosineSimilarity(catVecA, catVecB);
 
   // Weighted Score
-  // 50% embeddings, 30% subscriptions, 20% categories
-  const rawScore = (0.5 * embSim) + (0.3 * subSim) + (0.2 * catSim);
+  // 60% embeddings, 40% categories
+  const rawScore = (0.6 * embSim) + (0.4 * catSim);
 
   // Normalize using sigmoid
   const normalized = 1 / (1 + Math.exp(-8 * (rawScore - 0.3)));
@@ -117,7 +107,6 @@ function computeMatchScore(userA, userB) {
   return {
     score,
     embeddingScore: Math.round(embSim * 100),
-    subscriptionScore: Math.round(subSim * 100),
     categoryScore: Math.round(catSim * 100)
   };
 }
@@ -156,7 +145,6 @@ module.exports = {
   generateEmbedding,
   batchEmbed,
   cosineSimilarity,
-  jaccardSimilarity,
   computeMatchScore,
   createUserEmbedding
 };

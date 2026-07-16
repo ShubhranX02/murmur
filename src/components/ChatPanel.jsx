@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatBubble from './ChatBubble';
 import './ChatPanel.css';
 
 function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -76,11 +78,13 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
         >
           {isSidebarCollapsed ? '☰' : '◀'}
         </button>
-        <img className="conversation-avatar" src={match.photoURL || '/default-avatar.png'} alt={match.displayName} />
-        <div>
+        <button type="button" className="conversation-profile-link" onClick={() => navigate(`/profile/${match.userId}`)} aria-label={`View ${match.displayName}'s profile`}>
+          <img className="conversation-avatar" src={match.photoURL || '/default-avatar.png'} alt={match.displayName} />
+        </button>
+        <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${match.userId}`)}>
           <h2>{match.displayName}</h2>
           <span>{match.score}% Match</span>
-        </div>
+        </button>
       </header>
       <div className="conversation-messages">
         {messages.length === 0 ? <div className="conversation-empty-state">Say hi to {match.displayName}! You both share a great YouTube taste.</div> : messages.map((message, index) => (

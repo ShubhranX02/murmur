@@ -1,80 +1,224 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import CategoryRingChart from '../components/CategoryRingChart';
+import LoadingSpinner from '../components/LoadingSpinner';
 import './ProfilePage.css';
 
+const emptyDetails = {
+  location: { city: '', country: '' },
+  age: '',
+  gender: '',
+  description: ''
+};
+
+function toFormDetails(details) {
+  return {
+    location: {
+      city: details?.location?.city || '',
+      country: details?.location?.country || ''
+    },
+    age: details?.age || '',
+    gender: details?.gender || '',
+    description: details?.description || ''
+  };
+}
+
 function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, updateUser } = useAuth();
+  const { userId } = useParams();
   const navigate = useNavigate();
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const targetUserId = userId || user?.id;
+  const isOwnProfile = Boolean(user && targetUserId === user.id);
+  const [profile, setProfile] = useState(null);
+  const [formDetails, setFormDetails] = useState(emptyDetails);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!user) {
       navigate('/', { replace: true });
+      return;
     }
-  }, [navigate, user]);
+
+    let active = true;
+    const loadProfile = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(`${apiUrl}/api/auth/profile/${targetUserId}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not load this profile.');
+        if (!active) return;
+        setProfile(data.profile);
+        setFormDetails(toFormDetails(data.profile.profileDetails));
+      } catch (fetchError) {
+        // The signed-in user can still edit their cached profile if a refresh
+        // happens while the server is temporarily unavailable.
+        if (active && isOwnProfile) {
+          const fallback = {
+            id: user.id,
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            profileDetails: user.profileDetails || null,
+            onboarded: user.onboarded
+          };
+          setProfile(fallback);
+          setFormDetails(toFormDetails(fallback.profileDetails));
+          setError('Showing your saved profile while the latest version loads.');
+        } else if (active) {
+          setError(fetchError.message);
+        }
+      } finally {
+        if (active) setLoading(false);
+      }
+    };
+
+    loadProfile();
+    return () => { active = false; };
+  }, [apiUrl, isOwnProfile, navigate, targetUserId, user]);
 
   const handleSignOut = () => {
     signOut();
     navigate('/');
   };
 
-  if (!user) return null;
+  const updateLocation = (field, value) => {
+    setFormDetails(current => ({
+      ...current,
+      location: { ...current.location, [field]: value }
+    }));
+  };
+
+  const updateDetail = (field, value) => {
+    setFormDetails(current => ({ ...current, [field]: value }));
+  };
+
+  const handleSave = async event => {
+    event.preventDefault();
+    const wordCount = formDetails.description.trim().split(/\s+/).filter(Boolean).length;
+    if (wordCount > 100) {
+      setError('Keep your description to 100 words or fewer.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/profile/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileDetails: formDetails })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not save your profile.');
+
+      setProfile(data.profile);
+      setFormDetails(toFormDetails(data.profile.profileDetails));
+      updateUser({ profileDetails: data.profile.profileDetails, detailsComplete: true });
+      setIsEditing(false);
+    } catch (saveError) {
+      setError(saveError.message || 'Could not save your profile.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!user || loading) {
+    return <div className="profile-loading"><LoadingSpinner size="large" text="Loading profile..." /></div>;
+  }
+
+  if (!profile) {
+    return (
+      <div className="profile-page">
+        <div className="profile-status-card glass">{error || 'This profile could not be found.'}</div>
+      </div>
+    );
+  }
 
   const topCategories = user.youtubeData?.topCategories || [];
+  const location = profile.profileDetails?.location;
+  const descriptionWords = formDetails.description.trim() ? formDetails.description.trim().split(/\s+/).length : 0;
 
   return (
     <div className="profile-page animate-fade-in-up">
       <div className="profile-container">
-        
+        {error && <div className="profile-notice">{error}</div>}
         <div className="profile-header glass">
           <div className="profile-avatar-wrapper">
-            <img 
-              src={user.photoURL || '/default-avatar.png'} 
-              alt={user.displayName} 
-              className="profile-avatar"
-            />
+            <img src={profile.photoURL || '/default-avatar.png'} alt={profile.displayName} className="profile-avatar" />
           </div>
-          <h1>{user.displayName}</h1>
-          <p className="profile-email">{user.email}</p>
+          <h1>{profile.displayName}</h1>
+          {isOwnProfile && <p className="profile-email">{user.email}</p>}
+          {!isOwnProfile && <p className="profile-relationship">Murmur member</p>}
+          <p className="profile-member-id">Member ID: {profile.id}</p>
+          {!isOwnProfile && (
+            <button className="btn-primary profile-message-button" onClick={() => navigate(`/matches/${profile.id}`)}>
+              Message
+            </button>
+          )}
         </div>
 
-        {user.onboarded ? (
+        <section className="profile-details-section glass">
+          <div className="profile-section-heading">
+            <div>
+              <h2>About</h2>
+              <p>{isOwnProfile ? 'Share the details you want your matches to see.' : `A little about ${profile.displayName}.`}</p>
+            </div>
+            {isOwnProfile && !isEditing && (
+              <button className="btn-secondary profile-edit-button" onClick={() => setIsEditing(true)}>Edit details</button>
+            )}
+          </div>
+
+          {isEditing ? (
+            <form className="profile-edit-form" onSubmit={handleSave}>
+              <div className="profile-form-row">
+                <label>City<input value={formDetails.location.city} onChange={event => updateLocation('city', event.target.value)} maxLength="80" required /></label>
+                <label>Country<input value={formDetails.location.country} onChange={event => updateLocation('country', event.target.value)} maxLength="80" required /></label>
+              </div>
+              <div className="profile-form-row">
+                <label>Age<input type="number" min="13" max="120" value={formDetails.age} onChange={event => updateDetail('age', event.target.value)} required /></label>
+                <label>Gender<select value={formDetails.gender} onChange={event => updateDetail('gender', event.target.value)} required><option value="" disabled>Select one</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></label>
+              </div>
+              <label>Description <span>{descriptionWords}/100 words</span><textarea value={formDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="5" required /></label>
+              <div className="profile-form-actions">
+                <button type="button" className="btn-secondary" onClick={() => { setFormDetails(toFormDetails(profile.profileDetails)); setIsEditing(false); }}>Cancel</button>
+                <button type="submit" className="btn-primary" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save details'}</button>
+              </div>
+            </form>
+          ) : profile.profileDetails ? (
+            <div className="profile-details-content">
+              <dl className="profile-facts">
+                <div><dt>Location</dt><dd>{location?.city}, {location?.country}</dd></div>
+                <div><dt>Age</dt><dd>{profile.profileDetails.age}</dd></div>
+                <div><dt>Gender</dt><dd>{profile.profileDetails.gender}</dd></div>
+              </dl>
+              <p className="profile-description">{profile.profileDetails.description}</p>
+            </div>
+          ) : (
+            <p className="profile-empty-details">{isOwnProfile ? 'Add your details so your matches can get to know you.' : 'This member has not added profile details yet.'}</p>
+          )}
+        </section>
+
+        {isOwnProfile && user.onboarded ? (
           <>
             <div className="stats-grid">
-              <div className="stat-card glass">
-                <span className="stat-icon">🎬</span>
-                <span className="stat-value">{user.youtubeData?.likedVideoCount || 0}</span>
-                <span className="stat-label">Liked Videos Analyzed</span>
-              </div>
-              
-              <div className="stat-card glass">
-                <span className="stat-icon">📺</span>
-                <span className="stat-value">{Object.keys(user.categoryDistribution || {}).length}</span>
-                <span className="stat-label">Categories Analysed</span>
-              </div>
+              <div className="stat-card glass"><span className="stat-icon">🎬</span><span className="stat-value">{user.youtubeData?.likedVideoCount || 0}</span><span className="stat-label">Liked Videos Analyzed</span></div>
+              <div className="stat-card glass"><span className="stat-icon">📺</span><span className="stat-value">{Object.keys(user.categoryDistribution || {}).length}</span><span className="stat-label">Categories Analysed</span></div>
             </div>
-
             <div className="categories-section glass">
               <h3>Your Categories</h3>
               <CategoryRingChart distribution={user.categoryDistribution} />
             </div>
           </>
-        ) : (
-          <div className="glass padding-24 text-center mt-24">
-            <p className="text-muted">You haven't connected your YouTube account yet.</p>
-            <button className="btn-primary mt-16" onClick={() => navigate('/onboarding')}>
-              Connect YouTube Now
-            </button>
-          </div>
-        )}
+        ) : isOwnProfile ? (
+          <div className="glass padding-24 text-center mt-24"><p className="text-muted">You haven't connected your YouTube account yet.</p><button className="btn-primary mt-16" onClick={() => navigate('/onboarding')}>Connect YouTube Now</button></div>
+        ) : null}
 
-        <div className="profile-actions">
-          <button className="btn-secondary signout-btn" onClick={handleSignOut}>
-            Sign Out
-          </button>
-        </div>
-
+        {isOwnProfile && <div className="profile-actions"><button className="btn-secondary signout-btn" onClick={handleSignOut}>Sign Out</button></div>}
       </div>
     </div>
   );

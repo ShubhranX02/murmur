@@ -6,6 +6,56 @@ const { db } = require('../config/firebase');
 // In production, encrypt this and store in a proper database linked to the session
 const tokenStore = new Map();
 
+const PROFILE_GENDERS = new Set(['Male', 'Female', 'Other']);
+
+function profileUnavailable(res) {
+  return res.status(503).json({
+    error: 'Profiles are unavailable because Firestore is not configured.'
+  });
+}
+
+function getPublicProfile(userId, data) {
+  return {
+    id: userId,
+    displayName: data.displayName || 'Murmur member',
+    photoURL: data.photoURL || null,
+    profileDetails: data.profileDetails || null,
+    onboarded: Boolean(data.onboarded)
+  };
+}
+
+function normalizeProfileDetails(details = {}) {
+  const city = String(details.location?.city || '').trim();
+  const country = String(details.location?.country || '').trim();
+  const age = Number(details.age);
+  const gender = String(details.gender || '').trim();
+  const description = String(details.description || '').trim();
+  const descriptionWords = description ? description.split(/\s+/).filter(Boolean) : [];
+
+  if (!city || city.length > 80 || !country || country.length > 80) {
+    throw new Error('Enter a valid city and country.');
+  }
+  if (!Number.isInteger(age) || age < 13 || age > 120) {
+    throw new Error('Enter an age between 13 and 120.');
+  }
+  if (!PROFILE_GENDERS.has(gender)) {
+    throw new Error('Choose Male, Female, or Other.');
+  }
+  if (!description) {
+    throw new Error('Write a short description about yourself.');
+  }
+  if (descriptionWords.length > 100) {
+    throw new Error('Keep your description to 100 words or fewer.');
+  }
+
+  return {
+    location: { city, country },
+    age,
+    gender,
+    description
+  };
+}
+
 // A Google OAuth client ID is public by design and is needed by the browser to
 // start the Google Identity and YouTube permission flows. Keeping its source of
 // truth on the API avoids requiring a second, separately deployed Vercel value.
@@ -45,7 +95,8 @@ router.post('/google', async (req, res) => {
       displayName: name,
       email: email,
       photoURL: picture,
-      onboarded: false
+      onboarded: false,
+      detailsComplete: false
     };
 
     try {
@@ -62,11 +113,13 @@ router.post('/google', async (req, res) => {
 
         if (!doc.exists) {
           updateData.onboarded = false;
+          updateData.detailsComplete = false;
           updateData.createdAt = new Date();
         } else {
           const docData = doc.data();
           userObj = { ...docData, ...userObj }; // merge Firestore data
           userObj.onboarded = docData.onboarded || false;
+          userObj.detailsComplete = docData.detailsComplete || false;
         }
 
         await userRef.set(updateData, { merge: true });
@@ -79,6 +132,54 @@ router.post('/google', async (req, res) => {
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).json({ error: 'Authentication failed' });
+  }
+});
+
+// Public profile data intentionally excludes email, embeddings, and YouTube data.
+router.get('/profile/:userId', async (req, res) => {
+  try {
+    if (!db) return profileUnavailable(res);
+
+    const userDoc = await db.collection('users').doc(req.params.userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'This profile could not be found.' });
+    }
+
+    return res.json({ profile: getPublicProfile(userDoc.id, userDoc.data()) });
+  } catch (error) {
+    console.error('Profile lookup error:', error);
+    return res.status(500).json({ error: 'Could not load this profile.' });
+  }
+});
+
+router.patch('/profile/:userId', async (req, res) => {
+  try {
+    if (!db) return profileUnavailable(res);
+
+    let profileDetails;
+    try {
+      profileDetails = normalizeProfileDetails(req.body?.profileDetails);
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message });
+    }
+
+    const userRef = db.collection('users').doc(req.params.userId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'This profile could not be found.' });
+    }
+
+    await userRef.set({
+      profileDetails,
+      detailsComplete: true,
+      updatedAt: new Date()
+    }, { merge: true });
+
+    const updatedProfile = { ...userDoc.data(), profileDetails, detailsComplete: true };
+    return res.json({ profile: getPublicProfile(userDoc.id, updatedProfile) });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    return res.status(500).json({ error: 'Could not save your profile details.' });
   }
 });
 

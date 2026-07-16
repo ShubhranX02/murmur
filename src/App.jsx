@@ -28,6 +28,7 @@ function App() {
               <Route path="/matches/:matchId" element={<MatchesPage />} />
               <Route path="/chat/:matchId" element={<ChatPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/profile/:userId" element={<ProfilePage />} />
             </Routes>
           </main>
         </div>

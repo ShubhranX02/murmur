@@ -89,6 +89,21 @@
   position: relative;
 }
 
+.match-profile-link {
+  display: contents;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: inherit;
+  cursor: pointer;
+}
+
+.match-profile-link:focus-visible .match-avatar-container,
+.match-profile-link:focus-visible .match-name {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
 .match-menu-wrapper { position: relative; }
 .match-menu-trigger { width: 30px; height: 38px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 22px; line-height: 1; }
 .match-menu-trigger:hover, .match-menu-trigger:focus-visible { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); outline: none; }

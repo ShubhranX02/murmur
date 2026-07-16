@@ -23,7 +23,7 @@ function MatchesPage() {
       return;
     }
     
-    if (!isOnboarded) {
+    if (!isOnboarded || !user?.detailsComplete) {
       navigate('/onboarding');
       return;
     }

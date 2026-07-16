@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './MatchCard.css';
 
 function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -33,6 +35,11 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
     event.stopPropagation();
   };
 
+  const openProfile = event => {
+    preventChatOpen(event);
+    navigate(`/profile/${match.userId}`);
+  };
+
   const handleAction = (event, action) => {
     preventChatOpen(event);
     setMenuOpen(false);
@@ -49,6 +56,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
       onClick={openChat}
       onKeyDown={handleKeyDown}
     >
+      <button type="button" className="match-profile-link" onClick={openProfile} aria-label={`View ${match.displayName}'s profile`}>
       <div className="match-avatar-container">
         <img
           src={match.photoURL || '/default-avatar.png'}
@@ -66,6 +74,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
         </h3>
         {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
       </div>
+      </button>
       
       <div className="match-score-wrapper">
         <span

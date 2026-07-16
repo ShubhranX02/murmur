@@ -13,9 +13,10 @@ The current user journey is:
 3. On that same screen, they grant read-only YouTube access.
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
-6. The user views matches and can open a chat with a match.
+6. The user adds their location, age, gender, and short description before entering the app.
+7. The user views matches, opens chats, and can visit a matched member's shareable profile page.
 
-The app currently displays version `v4.12` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.13`, `4.14`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.14` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.15`, `4.16`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -144,7 +145,8 @@ Routes are declared in `src/App.jsx`:
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
-| `/profile` | `ProfilePage` | User information and sign-out |
+| `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
+| `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
 
 ### Authentication context
 
@@ -162,12 +164,14 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 `OnboardingPage.jsx` is intentionally structured as a single flow:
 
 1. If there is no user, it renders the Google Identity Services sign-in button.
-2. Returning users whose Firestore profile is already marked `onboarded` are sent directly to Matches after sign-in.
+2. Returning users whose Firestore profile is marked `onboarded` and has completed their details are sent directly to Matches after sign-in. Older accounts without profile details are sent directly to the details form, not asked to reconnect YouTube.
 3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
 6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
-7. It shows analysis progress and finally a match count.
+7. After analysis, the user supplies City, Country, Age (13–120), Gender (Male, Female, or Other), and a required description of at most 100 words. The details are then stored before the completion/match-count screen.
+
+Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile also sees a **Message** button that opens that member's conversation in the Matches workspace. Public profiles never return email addresses, embeddings, category distributions, or YouTube viewing data.
 
 The Google client ID is resolved in this order:
 
@@ -219,6 +223,8 @@ Expected successful response:
 | `GET` | `/google-client-id` | None | Returns `{ "clientId": "..." }` from `GOOGLE_CLIENT_ID`; returns 503 when missing |
 | `POST` | `/google` | `{ "credential": "Google ID token" }` | Parses user identity, upserts basic user fields, returns `{ user }` |
 | `POST` | `/youtube-token` | `{ "accessToken", "userId" }` | Stores the token in memory for subsequent YouTube fetches |
+| `GET` | `/profile/:userId` | None | Returns a safe public profile: name, avatar, onboarding state, and profile details only |
+| `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "city", "country" }, "age", "gender", "description" } }` | Validates and saves the current user's profile details; marks `detailsComplete: true` |
 
 #### YouTube: `/api/youtube`
 
@@ -296,6 +302,13 @@ Fields currently written include:
   email,
   photoURL,
   onboarded,
+  detailsComplete,
+  profileDetails: {
+    location: { city, country },
+    age,                    // Integer, 13–120
+    gender,                 // "Male", "Female", or "Other"
+    description             // Required, 100 words maximum
+  },
   createdAt,
   updatedAt,
   embedding,              // Array of numeric values

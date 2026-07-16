@@ -5,7 +5,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
-  const { user, isOnboarded, signInWithGoogle, storeYouTubeToken, updateUser, setOnboarded } = useAuth();
+  const { user, isOnboarded, signInWithGoogle, storeYouTubeToken, updateUser } = useAuth();
   const navigate = useNavigate();
   const googleButtonRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -16,12 +16,40 @@ function OnboardingPage() {
   const [matchCount, setMatchCount] = useState(0);
   const [error, setError] = useState(null);
   const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
+  const [profileDetails, setProfileDetails] = useState({
+    location: { city: '', country: '' },
+    age: '',
+    gender: '',
+    description: ''
+  });
+  const [isSavingDetails, setIsSavingDetails] = useState(false);
 
   useEffect(() => {
-    if (isOnboarded) {
+    if (isOnboarded && user?.detailsComplete) {
       navigate('/matches', { replace: true });
     }
-  }, [isOnboarded, navigate]);
+  }, [isOnboarded, navigate, user?.detailsComplete]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (user.profileDetails) {
+      setProfileDetails({
+        location: {
+          city: user.profileDetails.location?.city || '',
+          country: user.profileDetails.location?.country || ''
+        },
+        age: user.profileDetails.age || '',
+        gender: user.profileDetails.gender || '',
+        description: user.profileDetails.description || ''
+      });
+    }
+
+    // Existing users need only add their details; they should not reconnect YouTube.
+    if (user.onboarded && !user.detailsComplete) {
+      setStep(2);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (googleClientId) return;
@@ -171,8 +199,6 @@ function OnboardingPage() {
       setTimeout(() => {
         if (matchData.profileData) {
           updateUser({ ...matchData.profileData, onboarded: true });
-        } else {
-          setOnboarded();
         }
         setStep(2);
         setIsAnalyzing(false);
@@ -182,6 +208,50 @@ function OnboardingPage() {
       setError(err.message || 'An error occurred during analysis');
       setIsAnalyzing(false);
       setStep(0); // Return to the welcome screen so they can retry
+    }
+  };
+
+  const updateDetail = (field, value) => {
+    setProfileDetails(current => ({ ...current, [field]: value }));
+  };
+
+  const updateLocation = (field, value) => {
+    setProfileDetails(current => ({
+      ...current,
+      location: { ...current.location, [field]: value }
+    }));
+  };
+
+  const handleSaveDetails = async event => {
+    event.preventDefault();
+    const wordCount = profileDetails.description.trim().split(/\s+/).filter(Boolean).length;
+
+    if (wordCount > 100) {
+      setError('Keep your description to 100 words or fewer.');
+      return;
+    }
+
+    setIsSavingDetails(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/profile/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ profileDetails })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not save your profile details.');
+
+      updateUser({
+        profileDetails: data.profile.profileDetails,
+        detailsComplete: true,
+        onboarded: true
+      });
+      setStep(3);
+    } catch (err) {
+      setError(err.message || 'Could not save your profile details.');
+    } finally {
+      setIsSavingDetails(false);
     }
   };
 
@@ -266,6 +336,49 @@ function OnboardingPage() {
         )}
 
         {step === 2 && (
+          <div className="onboarding-step step-details animate-fade-in-up">
+            <div className="details-icon">✨</div>
+            <h2>Tell people a little about you</h2>
+            <p className="subtitle">This information appears on your Murmur profile.</p>
+            {error && <div className="error-message">{error}</div>}
+            <form className="profile-details-form" onSubmit={handleSaveDetails}>
+              <div className="details-row">
+                <label>
+                  City
+                  <input value={profileDetails.location.city} onChange={event => updateLocation('city', event.target.value)} maxLength="80" required />
+                </label>
+                <label>
+                  Country
+                  <input value={profileDetails.location.country} onChange={event => updateLocation('country', event.target.value)} maxLength="80" required />
+                </label>
+              </div>
+              <div className="details-row">
+                <label>
+                  Age
+                  <input type="number" min="13" max="120" value={profileDetails.age} onChange={event => updateDetail('age', event.target.value)} required />
+                </label>
+                <label>
+                  Gender
+                  <select value={profileDetails.gender} onChange={event => updateDetail('gender', event.target.value)} required>
+                    <option value="" disabled>Select one</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                Description <span>{profileDetails.description.trim() ? profileDetails.description.trim().split(/\s+/).length : 0}/100 words</span>
+                <textarea value={profileDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="4" required />
+              </label>
+              <button type="submit" className="btn-primary" disabled={isSavingDetails}>
+                {isSavingDetails ? 'Saving…' : 'Save and continue'}
+              </button>
+            </form>
+          </div>
+        )}
+
+        {step === 3 && (
           <div className="onboarding-step step-complete animate-fade-in-up">
             <div className="celebration-emoji">🎉</div>
             <h2>You're all set!</h2>
@@ -284,7 +397,7 @@ function OnboardingPage() {
 
         {user && (
           <div className="step-indicators">
-            {[0, 1, 2].map(i => (
+            {[0, 1, 2, 3].map(i => (
               <div key={i} className={`step-dot ${step === i ? 'active' : ''} ${step > i ? 'completed' : ''}`}></div>
             ))}
           </div>

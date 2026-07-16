@@ -4,12 +4,12 @@ import { useAuth } from '../contexts/AuthContext';
 import './LandingPage.css';
 
 function LandingPage() {
-  const { isAuthenticated, isOnboarded } = useAuth();
+  const { isAuthenticated, isOnboarded, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate(isOnboarded ? '/matches' : '/onboarding');
-  }, [isAuthenticated, isOnboarded, navigate]);
+    if (isAuthenticated) navigate(isOnboarded && user?.detailsComplete ? '/matches' : '/onboarding');
+  }, [isAuthenticated, isOnboarded, navigate, user?.detailsComplete]);
 
   return (
     <div className="landing-page">

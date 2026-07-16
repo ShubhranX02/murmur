@@ -253,6 +253,68 @@
   letter-spacing: 1px;
 }
 
+/* Profile details step */
+.step-details {
+  align-items: stretch;
+}
+
+.details-icon {
+  font-size: 42px;
+  margin-bottom: 14px;
+}
+
+.profile-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  width: 100%;
+  text-align: left;
+}
+
+.details-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.profile-details-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.profile-details-form label span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.profile-details-form input,
+.profile-details-form select,
+.profile-details-form textarea {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 400;
+  outline: none;
+  padding: 11px 12px;
+}
+
+.profile-details-form textarea { resize: vertical; }
+
+.profile-details-form input:focus,
+.profile-details-form select:focus,
+.profile-details-form textarea:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.12);
+}
+
 /* Step Indicators */
 .step-indicators {
   position: absolute;
@@ -280,4 +342,14 @@
 .step-dot.completed {
   background: var(--primary-light);
   opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  .onboarding-container {
+    padding: 32px 22px;
+  }
+
+  .details-row {
+    grid-template-columns: 1fr;
+  }
 }

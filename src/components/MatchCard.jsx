@@ -44,6 +44,31 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
         {match.hasUnreadMessages && <span className="unread-dot" aria-label="New message" />}
       </div>
 
+      <div className="match-person">
+        <h3 className="match-name">
+          {match.isPinned && <span className="pin-icon" title="Pinned chat">📌 </span>}
+          {match.displayName}
+          {match.isMuted && <span className="mute-icon" title="Muted notifications"> 🔕</span>}
+        </h3>
+        {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
+      </div>
+      
+      <div className="match-score-wrapper">
+        <span
+          className="match-score"
+          tabIndex="0"
+          aria-label={`${match.score}% match. Focus or hover for score details.`}
+          onClick={preventChatOpen}
+          onKeyDown={preventChatOpen}
+        >
+          {match.score}%
+        </span>
+        <div className="match-score-tooltip" role="tooltip">
+          <div><span>Content vibe</span><strong>{match.embeddingScore}%</strong></div>
+          <div><span>Categories</span><strong>{match.categoryScore}%</strong></div>
+        </div>
+      </div>
+
       <div className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
         <button
           type="button"
@@ -68,31 +93,6 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
             ))}
           </div>
         )}
-      </div>
-
-      <div className="match-person">
-        <h3 className="match-name">
-          {match.isPinned && <span className="pin-icon" title="Pinned chat">📌 </span>}
-          {match.displayName}
-          {match.isMuted && <span className="mute-icon" title="Muted notifications"> 🔕</span>}
-        </h3>
-        {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
-      </div>
-      
-      <div className="match-score-wrapper">
-        <span
-          className="match-score"
-          tabIndex="0"
-          aria-label={`${match.score}% match. Focus or hover for score details.`}
-          onClick={preventChatOpen}
-          onKeyDown={preventChatOpen}
-        >
-          {match.score}%
-        </span>
-        <div className="match-score-tooltip" role="tooltip">
-          <div><span>Content vibe</span><strong>{match.embeddingScore}%</strong></div>
-          <div><span>Categories</span><strong>{match.categoryScore}%</strong></div>
-        </div>
       </div>
       
     </article>

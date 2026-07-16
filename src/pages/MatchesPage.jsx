@@ -76,9 +76,6 @@ function MatchesPage() {
       setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, isPinned: !m.isPinned } : m));
     } else if (action === 'Mark as unread') {
       setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, hasUnreadMessages: !m.hasUnreadMessages } : m));
-    } else if (action === 'Archive') {
-      setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, isArchived: !m.isArchived } : m));
-      if (matchId === targetMatch.userId) navigate('/matches');
     } else if (action === 'Block') {
       alert(`${targetMatch.displayName} has been blocked.`);
       setMatches(prev => prev.filter(m => m.userId !== targetMatch.userId));
@@ -90,8 +87,7 @@ function MatchesPage() {
     }
   };
 
-  // Filter out archived matches
-  const activeMatches = matches.filter(m => !m.isArchived);
+  const activeMatches = matches;
 
   // Sort matches: pinned first, then by score descending
   const sortedMatches = [...activeMatches].sort((a, b) => {

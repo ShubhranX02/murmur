@@ -1,8 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './MatchCard.css';
 
 function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const closeMenuOnOutsideClick = event => {
+      if (!menuRef.current?.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', closeMenuOnOutsideClick);
+    return () => document.removeEventListener('mousedown', closeMenuOnOutsideClick);
+  }, [menuOpen]);
   const openChat = () => {
     onSelect?.(match);
   };
@@ -69,7 +83,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
         </div>
       </div>
 
-      <div className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
+      <div ref={menuRef} className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
         <button
           type="button"
           className="match-menu-trigger"
@@ -81,7 +95,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
         </button>
         {menuOpen && (
           <div className="match-actions-menu" role="menu">
-            {['Block', 'Report', 'Delete chat', 'Pin chat', 'Mute notifications', 'Mark as unread', 'Archive'].map(action => (
+            {['Block', 'Report', 'Delete chat', 'Pin chat', 'Mute notifications', 'Mark as unread'].map(action => (
               <button 
                 key={action} 
                 type="button" 

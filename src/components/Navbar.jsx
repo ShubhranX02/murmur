@@ -21,6 +21,12 @@ function Navbar() {
           {isAuthenticated && (
             <div className="navbar-links">
             <NavLink 
+              to="/activity" 
+              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+            >
+              Activity
+            </NavLink>
+            <NavLink 
               to="/matches" 
               className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
             >

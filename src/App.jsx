@@ -6,6 +6,9 @@ import OnboardingPage from './pages/OnboardingPage';
 import MatchesPage from './pages/MatchesPage';
 import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
+import ActivityFeedPage from './pages/ActivityFeedPage';
+import CreateActivityPage from './pages/CreateActivityPage';
+import ActivityRoomPage from './pages/ActivityRoomPage';
 import './App.css';
 
 function App() {
@@ -18,6 +21,9 @@ function App() {
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/activity" element={<ActivityFeedPage />} />
+              <Route path="/activity/create" element={<CreateActivityPage />} />
+              <Route path="/activity/:activityId" element={<ActivityRoomPage />} />
               <Route path="/matches" element={<MatchesPage />} />
               <Route path="/matches/:matchId" element={<MatchesPage />} />
               <Route path="/chat/:matchId" element={<ChatPage />} />

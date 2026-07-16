@@ -150,7 +150,14 @@ router.post('/compute', async (req, res) => {
         subscriptionCount: subscriptions.length,
         topCategories: Object.keys(categoryDistribution)
           .sort((a, b) => categoryDistribution[b] - categoryDistribution[a])
-          .slice(0, 5)
+          .slice(0, 5),
+        // Save a stripped down list of up to 100 liked videos for the Activity Publisher
+        savedLikedVideos: likedVideos.slice(0, 100).map(v => ({
+          id: v.id,
+          title: v.snippet?.title || 'Unknown Title',
+          channelTitle: v.snippet?.channelTitle || 'Unknown Creator',
+          thumbnailUrl: v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url || null
+        }))
       }
     };
 

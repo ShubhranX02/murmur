@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth').router;
 const youtubeRoutes = require('./routes/youtube');
 const matchesRoutes = require('./routes/matches');
 const chatRoutes = require('./routes/chat');
+const activitiesRoutes = require('./routes/activities');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -25,6 +26,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/matches', matchesRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/activities', activitiesRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

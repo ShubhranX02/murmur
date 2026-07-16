@@ -201,13 +201,17 @@ function ActivityRoomPage() {
                 <p className="text-muted">Say hi to everyone.</p>
               </div>
             ) : (
-              messages.map(msg => (
-                <ChatBubble 
-                  key={msg.id} 
-                  message={msg} 
-                  isOwn={msg.senderId === user.id} 
-                />
-              ))
+              messages.map(msg => {
+                const senderProfile = activity.participantsProfiles?.find(p => p.id === msg.senderId);
+                return (
+                  <ChatBubble 
+                    key={msg.id} 
+                    message={msg} 
+                    isSent={msg.senderId === user.id} 
+                    senderName={senderProfile?.displayName || 'Unknown'}
+                  />
+                );
+              })
             )}
             <div ref={messagesEndRef} />
           </div>

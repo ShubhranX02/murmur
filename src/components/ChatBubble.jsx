@@ -1,6 +1,6 @@
 import './ChatBubble.css';
 
-function ChatBubble({ message, isSent }) {
+function ChatBubble({ message, isSent, senderName }) {
   // Format time (e.g. 14:30)
   const timeString = new Date(message.createdAt).toLocaleTimeString([], { 
     hour: '2-digit', 
@@ -10,6 +10,9 @@ function ChatBubble({ message, isSent }) {
   return (
     <div className={`chat-bubble-wrapper ${isSent ? 'sent' : 'received'}`}>
       <div className={`chat-bubble ${isSent ? 'animate-slide-in-right' : 'animate-slide-in-left'}`}>
+        {senderName && !isSent && (
+          <div className="message-sender-name">{senderName}</div>
+        )}
         <p className="message-text">{message.text}</p>
         <span className="message-time">{timeString}</span>
       </div>

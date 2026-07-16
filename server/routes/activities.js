@@ -298,5 +298,40 @@ router.get('/:activityId/details', async (req, res) => {
   }
 });
 
+router.delete('/:activityId', async (req, res) => {
+  try {
+    const { activityId } = req.params;
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    if (!db) {
+      return res.status(503).json({ error: 'Database not configured' });
+    }
+
+    const activityRef = db.collection('activities').doc(activityId);
+    const doc = await activityRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: 'Activity not found' });
+    }
+
+    if (doc.data().publisherId !== userId) {
+      return res.status(403).json({ error: 'Only the creator can delete this activity' });
+    }
+
+    // Delete the activity doc
+    await activityRef.delete();
+    
+    // Note: We don't delete the messages subcollection to keep this simple (Firestore requires batch deletion or recursive delete, which is fine to skip for an MVP or let expire/cleanup separately).
+
+    res.json({ success: true, message: 'Activity deleted' });
+  } catch (error) {
+    console.error('Error deleting activity:', error);
+    res.status(500).json({ error: 'Failed to delete activity' });
+  }
+});
 
 module.exports = router;

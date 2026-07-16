@@ -115,6 +115,27 @@ function ActivityRoomPage() {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure that you want to end this conversation?")) return;
+    
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to end conversation');
+      }
+      
+      navigate('/activity', { replace: true });
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   if (!user) return null;
   
   if (loading) {
@@ -192,6 +213,16 @@ function ActivityRoomPage() {
           </div>
 
           <form className="room-input-form glass" onSubmit={handleSend}>
+            {user.id === activity.publisherId && (
+              <button 
+                type="button" 
+                className="btn-icon delete-activity-btn" 
+                onClick={handleDelete}
+                title="End Conversation"
+              >
+                🗑️
+              </button>
+            )}
             <input 
               type="text" 
               placeholder="Type a message..." 

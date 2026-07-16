@@ -1,10 +1,8 @@
-import { useNavigate } from 'react-router-dom';
 import './MatchCard.css';
 
-function MatchCard({ match, delay = '0s' }) {
-  const navigate = useNavigate();
+function MatchCard({ match, delay = '0s', onSelect, isSelected = false }) {
   const openChat = () => {
-    navigate(`/chat/${match.userId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL || '')}&score=${match.score}`);
+    onSelect?.(match);
   };
 
   const handleKeyDown = (event) => {
@@ -16,7 +14,7 @@ function MatchCard({ match, delay = '0s' }) {
   
   return (
     <article
-      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''}`}
+      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''} ${isSelected ? 'is-selected' : ''}`}
       style={{ animationDelay: delay }}
       role="button"
       tabIndex="0"

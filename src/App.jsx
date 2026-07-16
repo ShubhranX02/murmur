@@ -19,6 +19,7 @@ function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/matches" element={<MatchesPage />} />
+              <Route path="/matches/:matchId" element={<MatchesPage />} />
               <Route path="/chat/:matchId" element={<ChatPage />} />
               <Route path="/profile" element={<ProfilePage />} />
             </Routes>

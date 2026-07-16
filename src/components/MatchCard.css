@@ -29,6 +29,11 @@
   background: #2a1d27;
 }
 
+.match-list-item.is-selected {
+  background: rgba(229, 57, 53, 0.2);
+  border-color: rgba(255, 82, 82, 0.6);
+}
+
 .match-avatar-container {
   width: 58px;
   height: 58px;

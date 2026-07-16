@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v2.7` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `2.8`, then `2.9`, and so on. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v2.8` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `2.9`, then `3.0`, and so on. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -141,8 +141,9 @@ Routes are declared in `src/App.jsx`:
 | --- | --- | --- |
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
-| `/matches` | `MatchesPage` | Ranked matches |
-| `/chat/:matchId` | `ChatPage` | Conversation UI for a selected match |
+| `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
+| `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
+| `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | User information and sign-out |
 
 ### Authentication context
@@ -178,7 +179,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 ### UI components
 
 - `Navbar`: fixed top navigation, Matches link, clickable user avatar that opens Profile, and version badge.
-- `MatchCard`: match score, individual score factors, and chat launch button.
+- `MatchCard`: clickable match row with match score and individual score factors.
 - `PercentageRing`: animated SVG compatibility percentage.
 - `ChatBubble`: sent/received chat-message display.
 - `LoadingSpinner`: shared progress indicator.
@@ -351,7 +352,7 @@ The backend writes:
 }
 ```
 
-Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Firestore real-time listeners are not currently used.
+Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. The Matches page presents the match list and the active conversation in one desktop-style workspace; before a match is selected, its chat panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
 
 ---
 

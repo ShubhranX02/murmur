@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import MatchCard from '../components/MatchCard';
+import ChatPanel from '../components/ChatPanel';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './MatchesPage.css';
 
 function MatchesPage() {
   const { user, isAuthenticated, isOnboarded } = useAuth();
   const navigate = useNavigate();
+  const { matchId } = useParams();
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,16 +52,14 @@ function MatchesPage() {
     );
   }
 
+  const activeMatch = matches.find(match => match.userId === matchId);
+
+  const selectMatch = (match) => {
+    navigate(`/matches/${match.userId}`);
+  };
+
   return (
     <div className="matches-page">
-      <div className="matches-header animate-fade-in-up">
-        <div className="header-content">
-          <h1>Your Matches</h1>
-          <div className="match-badge">{matches.length}</div>
-        </div>
-        <p className="subtitle">Based on your unique YouTube taste profile</p>
-      </div>
-
       {error && (
         <div className="error-card glass animate-fade-in">
           {error}
@@ -73,14 +73,28 @@ function MatchesPage() {
           <p>We're still growing the Murmur community. Check back soon for new connections!</p>
         </div>
       ) : (
-        <div className="matches-list">
-          {[...matches].sort((a, b) => a.score - b.score).map((match, index) => (
-            <MatchCard 
-              key={match.matchId} 
-              match={match} 
-              delay={`${index * 0.1}s`} 
-            />
-          ))}
+        <div className="chat-workspace animate-fade-in">
+          <aside className="matches-sidebar">
+            <div className="matches-sidebar-header">
+              <div>
+                <h1>Chats</h1>
+                <p>People who share your YouTube taste</p>
+              </div>
+              <div className="match-badge" aria-label={`${matches.length} matches`}>{matches.length}</div>
+            </div>
+            <div className="matches-list" aria-label="Your matches">
+              {[...matches].sort((a, b) => b.score - a.score).map((match, index) => (
+                <MatchCard
+                  key={match.matchId}
+                  match={match}
+                  delay={`${index * 0.05}s`}
+                  onSelect={selectMatch}
+                  isSelected={match.userId === matchId}
+                />
+              ))}
+            </div>
+          </aside>
+          <ChatPanel match={activeMatch} />
         </div>
       )}
     </div>

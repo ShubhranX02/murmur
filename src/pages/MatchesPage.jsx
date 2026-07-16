@@ -78,7 +78,6 @@ function MatchesPage() {
             <div className="matches-sidebar-header">
               <div>
                 <h1>Chats</h1>
-                <p>People who share your YouTube taste</p>
               </div>
               <div className="match-badge" aria-label={`${matches.length} matches`}>{matches.length}</div>
             </div>

@@ -84,6 +84,14 @@
   border-radius: 2px;
 }
 
+.nav-divider {
+  width: 1px;
+  height: 18px;
+  background-color: var(--border);
+  opacity: 0.5;
+  margin: 0;
+}
+
 .nav-avatar {
   width: 36px;
   height: 36px;

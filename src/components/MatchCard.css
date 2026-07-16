@@ -1,8 +1,8 @@
-.match-list-item {
+.match-list-item {
   display: grid;
-  grid-template-columns: 58px minmax(0, 1fr) auto;
+  grid-template-columns: 58px auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   min-height: 84px;
   padding: 13px 16px;
   position: relative;
@@ -88,6 +88,13 @@
   position: relative;
 }
 
+.match-menu-wrapper { position: relative; }
+.match-menu-trigger { width: 30px; height: 38px; border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 22px; line-height: 1; }
+.match-menu-trigger:hover, .match-menu-trigger:focus-visible { color: var(--text-primary); background: rgba(255, 255, 255, 0.08); outline: none; }
+.match-actions-menu { position: absolute; top: 40px; right: 0; z-index: 50; width: 190px; overflow: hidden; border: 1px solid var(--glass-border); border-radius: var(--radius-md); background: #202033; box-shadow: 0 14px 30px rgba(0, 0, 0, 0.45); }
+.match-actions-menu button { display: block; width: 100%; border: 0; background: transparent; color: var(--text-primary); cursor: pointer; font: inherit; font-size: 13px; padding: 11px 14px; text-align: left; }
+.match-actions-menu button:hover, .match-actions-menu button:focus-visible { background: rgba(255, 255, 255, 0.08); outline: none; }
+
 .match-score {
   display: inline-block;
   min-width: 58px;
@@ -148,16 +155,12 @@
   color: var(--text-primary);
 }
 
-.match-score-wrapper:hover .match-score-tooltip,
-.match-score-wrapper:focus-within .match-score-tooltip {
-  opacity: 1;
-  transform: translateY(0);
-}
+
 
 @media (max-width: 600px) {
   .match-list-item {
-    grid-template-columns: 48px minmax(0, 1fr) auto;
-    gap: 12px;
+    grid-template-columns: 48px auto minmax(0, 1fr) auto;
+    gap: 10px;
     padding: 12px;
   }
 

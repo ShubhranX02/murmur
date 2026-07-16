@@ -10,9 +10,12 @@ function MatchesPage() {
   const { user, isAuthenticated, isOnboarded } = useAuth();
   const navigate = useNavigate();
   const { matchId } = useParams();
+
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [showUnreadCount, setShowUnreadCount] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -54,9 +57,51 @@ function MatchesPage() {
 
   const activeMatch = matches.find(match => match.userId === matchId);
 
+  // Automatically expand sidebar if there is no active match selected
+  useEffect(() => {
+    if (!activeMatch) {
+      setIsSidebarCollapsed(false);
+    }
+  }, [activeMatch]);
+
   const selectMatch = (match) => {
     navigate(`/matches/${match.userId}`);
   };
+
+  const handleMatchAction = (action, targetMatch) => {
+    if (action === 'Delete chat') {
+      setMatches(prev => prev.filter(m => m.userId !== targetMatch.userId));
+      if (matchId === targetMatch.userId) navigate('/matches');
+    } else if (action === 'Pin chat') {
+      setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, isPinned: !m.isPinned } : m));
+    } else if (action === 'Mark as unread') {
+      setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, hasUnreadMessages: !m.hasUnreadMessages } : m));
+    } else if (action === 'Archive') {
+      setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, isArchived: !m.isArchived } : m));
+      if (matchId === targetMatch.userId) navigate('/matches');
+    } else if (action === 'Block') {
+      alert(`${targetMatch.displayName} has been blocked.`);
+      setMatches(prev => prev.filter(m => m.userId !== targetMatch.userId));
+      if (matchId === targetMatch.userId) navigate('/matches');
+    } else if (action === 'Report') {
+      alert(`Report filed for ${targetMatch.displayName}.`);
+    } else if (action === 'Mute notifications') {
+      setMatches(prev => prev.map(m => m.userId === targetMatch.userId ? { ...m, isMuted: !m.isMuted } : m));
+    }
+  };
+
+  // Filter out archived matches
+  const activeMatches = matches.filter(m => !m.isArchived);
+
+  // Sort matches: pinned first, then by score descending
+  const sortedMatches = [...activeMatches].sort((a, b) => {
+    if (a.isPinned && !b.isPinned) return -1;
+    if (!a.isPinned && b.isPinned) return 1;
+    return b.score - a.score;
+  });
+
+  const unreadCount = activeMatches.filter(match => match.hasUnreadMessages).length;
+  const counterValue = showUnreadCount ? unreadCount : activeMatches.length;
 
   return (
     <div className="matches-page">
@@ -66,34 +111,59 @@ function MatchesPage() {
         </div>
       )}
 
-      {matches.length === 0 && !error ? (
+      {activeMatches.length === 0 && !error ? (
         <div className="empty-state glass animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <div className="empty-icon">🏜️</div>
           <h3>No matches yet</h3>
           <p>We're still growing the Murmur community. Check back soon for new connections!</p>
         </div>
       ) : (
-        <div className="chat-workspace animate-fade-in">
+        <div className={`chat-workspace animate-fade-in ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
           <aside className="matches-sidebar">
             <div className="matches-sidebar-header">
               <div>
                 <h1>Chats</h1>
               </div>
-              <div className="match-badge" aria-label={`${matches.length} matches`}>{matches.length}</div>
+              <div className="sidebar-header-actions">
+                {activeMatch && (
+                  <button 
+                    type="button" 
+                    className="sidebar-toggle" 
+                    onClick={() => setIsSidebarCollapsed(true)} 
+                    aria-label="Collapse chats"
+                  >
+                    ‹
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="match-badge"
+                  onClick={() => setShowUnreadCount(current => !current)}
+                  aria-label={`Showing ${showUnreadCount ? 'unread chats' : 'total matches'}. Click to switch.`}
+                  title={showUnreadCount ? 'Unread chats — click to show all matches' : 'All matches — click to show unread chats'}
+                >
+                  {counterValue}
+                </button>
+              </div>
             </div>
             <div className="matches-list" aria-label="Your matches">
-              {[...matches].sort((a, b) => b.score - a.score).map((match, index) => (
+              {sortedMatches.map((match, index) => (
                 <MatchCard
                   key={match.matchId}
                   match={match}
                   delay={`${index * 0.05}s`}
                   onSelect={selectMatch}
                   isSelected={match.userId === matchId}
+                  onAction={handleMatchAction}
                 />
               ))}
             </div>
           </aside>
-          <ChatPanel match={activeMatch} />
+          <ChatPanel 
+            match={activeMatch} 
+            isSidebarCollapsed={isSidebarCollapsed} 
+            onToggleSidebar={() => setIsSidebarCollapsed(prev => !prev)} 
+          />
         </div>
       )}
     </div>

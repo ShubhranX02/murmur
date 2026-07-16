@@ -20,23 +20,25 @@ function Navbar() {
 
           {isAuthenticated && (
             <div className="navbar-links">
-            <NavLink 
-              to="/activity" 
-              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-            >
-              Activity
-            </NavLink>
-            <NavLink 
-              to="/matches" 
-              className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
-            >
-              Matches
-            </NavLink>
-            {user?.photoURL && (
-              <Link to="/profile" className="nav-avatar" aria-label="Open your profile">
-                <img src={user.photoURL} alt={user.displayName} />
-              </Link>
-            )}
+              <NavLink 
+                to="/activity" 
+                className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+              >
+                Activity
+              </NavLink>
+              <span className="nav-divider" />
+              <NavLink 
+                to="/matches" 
+                className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+              >
+                Matches
+              </NavLink>
+              {user?.photoURL && <span className="nav-divider" />}
+              {user?.photoURL && (
+                <Link to="/profile" className="nav-avatar" aria-label="Open your profile">
+                  <img src={user.photoURL} alt={user.displayName} />
+                </Link>
+              )}
             </div>
           )}
         </div>

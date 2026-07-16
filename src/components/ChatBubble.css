@@ -39,14 +39,65 @@
   font-size: 15px;
   line-height: 1.5;
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .message-time {
-  display: block;
   font-size: 10px;
-  margin-top: 4px;
   opacity: 0.7;
-  text-align: right;
+}
+
+.bubble-avatar-container {
+  display: flex;
+  align-items: flex-start;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.bubble-avatar-container.left {
+  margin-right: 10px;
+}
+
+.bubble-avatar-container.right {
+  margin-left: 10px;
+}
+
+.bubble-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--glass-border);
+}
+
+.bubble-avatar-placeholder {
+  width: 32px;
+  height: 32px;
+}
+
+.message-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.edited-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.pinned-icon {
+  font-size: 13px;
+  margin-right: 4px;
+  vertical-align: middle;
 }
 
 .message-sender-name {

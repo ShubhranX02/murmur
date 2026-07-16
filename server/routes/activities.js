@@ -95,7 +95,7 @@ router.get('/', async (req, res) => {
       const activitiesSnapshot = await db.collection('activities')
         .where('publisherId', 'in', chunk)
         .where('expiresAt', '>', now)
-        .orderBy('expiresAt', 'desc') // Requires a composite index (publisherId, expiresAt)
+        // Removed .orderBy('expiresAt', 'desc') to avoid composite index requirements
         .get();
         
       activitiesSnapshot.forEach(doc => {
@@ -103,8 +103,8 @@ router.get('/', async (req, res) => {
         allActivities.push({
           id: doc.id,
           ...data,
-          expiresAt: data.expiresAt.toDate().toISOString(),
-          createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
+          expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : new Date(data.expiresAt).toISOString(),
+          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date(data.createdAt || Date.now()).toISOString()
         });
       });
     }
@@ -280,7 +280,7 @@ router.get('/:activityId/details', async (req, res) => {
       activity: {
         id: doc.id,
         ...data,
-        expiresAt: data.expiresAt.toDate().toISOString(),
+        expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : new Date(data.expiresAt).toISOString(),
         participantsProfiles
       }
     });

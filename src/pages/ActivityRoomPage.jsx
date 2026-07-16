@@ -14,6 +14,7 @@ function ActivityRoomPage() {
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const messagesEndRef = useRef(null);
 
@@ -30,7 +31,10 @@ function ActivityRoomPage() {
         // Fetch activity details
         const detailsRes = await fetch(`${apiUrl}/api/activities/${activityId}/details`);
         if (!detailsRes.ok) {
-          if (detailsRes.status === 404) navigate('/activity', { replace: true });
+          if (detailsRes.status === 404) {
+             navigate('/activity', { replace: true });
+             return;
+          }
           throw new Error('Failed to fetch activity details');
         }
         const detailsData = await detailsRes.json();
@@ -52,6 +56,7 @@ function ActivityRoomPage() {
         }
       } catch (err) {
         console.error(err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -114,6 +119,17 @@ function ActivityRoomPage() {
   
   if (loading) {
     return <div className="activity-room-loading"><LoadingSpinner /></div>;
+  }
+  
+  if (error) {
+    return (
+      <div className="activity-room-page animate-fade-in">
+        <div className="activity-room-workspace" style={{display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column'}}>
+           <p className="text-danger" style={{marginBottom: '16px'}}>{error}</p>
+           <button className="btn-secondary" onClick={() => navigate('/activity')}>Go Back</button>
+        </div>
+      </div>
+    );
   }
   
   if (!activity) return null;

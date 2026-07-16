@@ -98,16 +98,17 @@ function computeMatchScore(userA, userB) {
 
   // Weighted Score
   // 60% embeddings, 40% categories
-  const rawScore = (0.6 * embSim) + (0.4 * catSim);
-
-  // Normalize using sigmoid
-  const normalized = 1 / (1 + Math.exp(-8 * (rawScore - 0.3)));
-  const score = Math.round(normalized * 100);
+  // Clamp similarities between 0 and 1 to prevent negative scores
+  const clampedEmbSim = Math.max(0, Math.min(1, embSim));
+  const clampedCatSim = Math.max(0, Math.min(1, catSim));
+  
+  const rawScore = (0.6 * clampedEmbSim) + (0.4 * clampedCatSim);
+  const score = Math.round(rawScore * 100);
 
   return {
     score,
-    embeddingScore: Math.round(embSim * 100),
-    categoryScore: Math.round(catSim * 100)
+    embeddingScore: Math.round(clampedEmbSim * 100),
+    categoryScore: Math.round(clampedCatSim * 100)
   };
 }
 

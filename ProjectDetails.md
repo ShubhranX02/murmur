@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v3.3` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `3.4`, then `3.5`, and so on. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v3.4` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `3.5`, then `3.6`, and so on. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -280,14 +280,7 @@ The batching and 50-video profile bound are important. Render’s CPU and cold s
 | Content vibe | Cosine similarity of user embeddings | 60% |
 | Categories | Cosine similarity of normalized category distributions | 40% |
 
-The weighted raw score is transformed with:
-
-```text
-sigmoid = 1 / (1 + exp(-8 * (rawScore - 0.3)))
-percentage = round(sigmoid * 100)
-```
-
-The result stores the overall `score` and the two contributing percentages. There is no minimum percentage threshold: every onboarded user can see up to their 10 highest-ranked eligible users.
+The final score is a direct weighted average of these percentages. There is no minimum percentage threshold: every onboarded user can see up to their 10 highest-ranked eligible users.
 
 ---
 

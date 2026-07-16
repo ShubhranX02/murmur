@@ -15,7 +15,7 @@ The current user journey is:
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user views matches and can open a chat with a match.
 
-The app currently displays version `v2.8` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `2.9`, then `3.0`, and so on. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v2.9` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change: `3.0`, then `3.1`, and so on. Report the new version number to the user whenever a code change is delivered.
 
 ---
 

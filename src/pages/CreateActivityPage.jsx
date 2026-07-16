@@ -1,10 +1,10 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './CreateActivityPage.css';
 
 function CreateActivityPage() {
-  const { user } = useAuth();
+  const { user, storeYouTubeToken, updateUser } = useAuth();
   const navigate = useNavigate();
   
   const savedVideos = user?.youtubeData?.savedLikedVideos || [];
@@ -15,6 +15,90 @@ function CreateActivityPage() {
   const [timeLimit, setTimeLimit] = useState('24');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncError, setSyncError] = useState(null);
+
+  useEffect(() => {
+    if (googleClientId) return;
+    const loadGoogleClientId = async () => {
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/google-client-id`);
+        if (response.ok) {
+          const { clientId } = await response.json();
+          if (clientId) setGoogleClientId(clientId);
+        }
+      } catch (err) {
+        console.error('Unable to load Google sign-in configuration', err);
+      }
+    };
+    loadGoogleClientId();
+  }, [googleClientId]);
+
+  const handleConnectYouTube = () => {
+    if (!window.google || !googleClientId) {
+      setSyncError("Google API not loaded. Please refresh the page.");
+      return;
+    }
+
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: googleClientId,
+      scope: 'https://www.googleapis.com/auth/youtube.readonly',
+      callback: async (response) => {
+        if (response.access_token) {
+          try {
+            await storeYouTubeToken(response.access_token);
+            startSync(response.access_token);
+          } catch (err) {
+            setSyncError("Failed to store YouTube token.");
+          }
+        }
+      },
+      error_callback: (err) => {
+        setSyncError("YouTube connection was cancelled or failed.");
+      }
+    });
+    
+    tokenClient.requestAccessToken();
+  };
+
+  const startSync = async (accessToken) => {
+    setIsSyncing(true);
+    setSyncError(null);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    
+    try {
+      const fetchRes = await fetch(`${apiUrl}/api/youtube/fetch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      
+      if (!fetchRes.ok) throw new Error('Failed to fetch YouTube data');
+      const fetchData = await fetchRes.json();
+      
+      const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          likedVideos: fetchData.likedVideos,
+          subscriptions: fetchData.subscriptions
+        })
+      });
+      
+      if (!matchRes.ok) throw new Error('Failed to save videos to profile');
+      const matchData = await matchRes.json();
+      
+      if (matchData.profileData) {
+        updateUser({ ...matchData.profileData, onboarded: true });
+      }
+      setIsSyncing(false);
+    } catch (err) {
+      setSyncError(err.message || 'An error occurred during sync');
+      setIsSyncing(false);
+    }
+  };
 
   const filteredVideos = useMemo(() => {
     if (!search.trim()) return savedVideos;
@@ -64,7 +148,18 @@ function CreateActivityPage() {
         {savedVideos.length === 0 ? (
           <div className="no-videos-message">
             <p>You don't have any saved liked videos yet.</p>
-            <p className="text-muted mt-16">Since this is a new feature, you might need to reconnect YouTube to sync your videos!</p>
+            <p className="text-muted mt-16" style={{marginBottom: '24px'}}>Since this is a new feature, you need to sync your videos from YouTube.</p>
+            
+            {syncError && <div className="text-danger" style={{marginBottom: '16px'}}>{syncError}</div>}
+            
+            <button 
+              className="btn-primary" 
+              style={{background: '#ff0000', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '12px 24px', margin: '0 auto'}}
+              onClick={handleConnectYouTube}
+              disabled={isSyncing}
+            >
+              <span className="icon-yt">▶</span> {isSyncing ? 'Syncing Videos...' : 'Connect YouTube'}
+            </button>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="create-form">

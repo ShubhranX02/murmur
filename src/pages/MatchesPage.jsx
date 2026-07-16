@@ -47,14 +47,6 @@ function MatchesPage() {
     return () => clearInterval(interval);
   }, [user, isAuthenticated, isOnboarded, navigate]);
 
-  if (loading) {
-    return (
-      <div className="matches-page-loading">
-        <LoadingSpinner size="large" text="Loading your matches..." />
-      </div>
-    );
-  }
-
   const activeMatch = matches.find(match => match.userId === matchId);
 
   // Automatically expand sidebar if there is no active match selected
@@ -63,6 +55,14 @@ function MatchesPage() {
       setIsSidebarCollapsed(false);
     }
   }, [activeMatch]);
+
+  if (loading) {
+    return (
+      <div className="matches-page-loading">
+        <LoadingSpinner size="large" text="Loading your matches..." />
+      </div>
+    );
+  }
 
   const selectMatch = (match) => {
     navigate(`/matches/${match.userId}`);

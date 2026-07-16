@@ -94,18 +94,20 @@ router.get('/', async (req, res) => {
     for (const chunk of chunks) {
       const activitiesSnapshot = await db.collection('activities')
         .where('publisherId', 'in', chunk)
-        .where('expiresAt', '>', now)
-        // Removed .orderBy('expiresAt', 'desc') to avoid composite index requirements
         .get();
         
       activitiesSnapshot.forEach(doc => {
         const data = doc.data();
-        allActivities.push({
-          id: doc.id,
-          ...data,
-          expiresAt: data.expiresAt?.toDate ? data.expiresAt.toDate().toISOString() : new Date(data.expiresAt).toISOString(),
-          createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date(data.createdAt || Date.now()).toISOString()
-        });
+        const expiresAtDate = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        
+        if (expiresAtDate > now) {
+          allActivities.push({
+            id: doc.id,
+            ...data,
+            expiresAt: expiresAtDate.toISOString(),
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date(data.createdAt || Date.now()).toISOString()
+          });
+        }
       });
     }
 
@@ -265,15 +267,20 @@ router.get('/:activityId/details', async (req, res) => {
     // Fetch participant profiles for display
     let participantsProfiles = [];
     if (data.participants && data.participants.length > 0) {
-      const usersSnap = await db.collection('users')
-        .where(FieldValue.documentId(), 'in', data.participants)
-        .get();
-        
-      participantsProfiles = usersSnap.docs.map(u => ({
-        id: u.id,
-        displayName: u.data().displayName,
-        photoURL: u.data().photoURL
-      }));
+      const profiles = await Promise.all(
+        data.participants.map(async (pid) => {
+          const uDoc = await db.collection('users').doc(pid).get();
+          if (uDoc.exists) {
+            return {
+              id: uDoc.id,
+              displayName: uDoc.data().displayName,
+              photoURL: uDoc.data().photoURL
+            };
+          }
+          return null;
+        })
+      );
+      participantsProfiles = profiles.filter(Boolean);
     }
 
     res.json({

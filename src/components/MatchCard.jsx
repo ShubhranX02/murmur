@@ -3,11 +3,26 @@ import './MatchCard.css';
 
 function MatchCard({ match, delay = '0s' }) {
   const navigate = useNavigate();
+  const openChat = () => {
+    navigate(`/chat/${match.userId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL || '')}&score=${match.score}`);
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      openChat();
+    }
+  };
   
   return (
     <article
       className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''}`}
       style={{ animationDelay: delay }}
+      role="button"
+      tabIndex="0"
+      aria-label={`Open chat with ${match.displayName}, ${match.score}% match`}
+      onClick={openChat}
+      onKeyDown={handleKeyDown}
     >
       <div className="match-avatar-container">
         <img
@@ -24,7 +39,7 @@ function MatchCard({ match, delay = '0s' }) {
       </div>
       
       <div className="match-score-wrapper">
-        <span className="match-score" tabIndex="0" aria-label={`${match.score}% match. Hover for score details.`}>
+        <span className="match-score" aria-label={`${match.score}% match. Hover for score details.`}>
           {match.score}%
         </span>
         <div className="match-score-tooltip" role="tooltip">
@@ -34,12 +49,6 @@ function MatchCard({ match, delay = '0s' }) {
         </div>
       </div>
       
-      <button 
-        className="btn-primary message-match-btn"
-        onClick={() => navigate(`/chat/${match.userId}?partner=${encodeURIComponent(match.displayName)}&photo=${encodeURIComponent(match.photoURL || '')}&score=${match.score}`)}
-      >
-        Message
-      </button>
     </article>
   );
 }

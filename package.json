@@ -21,6 +21,8 @@
     "express": "^5.2.1",
     "firebase": "^12.16.0",
     "firebase-admin": "^14.1.0",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1"
   }
 }

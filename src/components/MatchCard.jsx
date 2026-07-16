@@ -13,6 +13,11 @@ function MatchCard({ match, delay = '0s' }) {
       openChat();
     }
   };
+
+  const preventChatOpen = (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+  };
   
   return (
     <article
@@ -39,7 +44,13 @@ function MatchCard({ match, delay = '0s' }) {
       </div>
       
       <div className="match-score-wrapper">
-        <span className="match-score" aria-label={`${match.score}% match. Hover for score details.`}>
+        <span
+          className="match-score"
+          tabIndex="0"
+          aria-label={`${match.score}% match. Focus or hover for score details.`}
+          onClick={preventChatOpen}
+          onKeyDown={preventChatOpen}
+        >
           {match.score}%
         </span>
         <div className="match-score-tooltip" role="tooltip">

@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.51` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.52`, `4.53`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.52` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.53`, `4.54`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -198,7 +198,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 ### UI components
 
 - `Navbar`: fixed top navigation whose leftmost option is a search icon that opens a member-ID search window; its remaining links are ordered The Algorithm, Discover, Conversations, Matches, and Dashboard. A clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
-- `Discover`: shows a video-title search bar above category cards for All Conversations plus every category supported by the current YouTube mapping. The square category cards retain an always-on glow matching their unique label colour, which intensifies on hover/focus. The desktop grid uses four cards per row; selecting a category or submitting a title search opens a separate results view with a Back to categories action. It lists only accessible, recency-sorted public rooms the member has not already joined, each with a **Join** action.
+- `Discover`: shows a video-title search bar above category cards for All Conversations plus every category supported by the current YouTube mapping. The square category cards retain a broad, bright always-on glow matching their unique label colour, which intensifies on hover/focus; the grid gap prevents neighbouring glows from colliding. The desktop grid uses four cards per row; selecting a category or submitting a title search opens a separate results view with a Back to categories action. It lists only accessible, recency-sorted public rooms the member has not already joined, each with a **Join** action.
 - `Conversations`: its sub-heading explains that it lists conversations started by matches and those joined from **Discover**, which remains an inline link to `/find`. Starting a conversation lets the creator select a total capacity of 2–30 people and set its audience to **Public** or **Matches Only**.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
@@ -551,3 +551,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.49` (2026-07-18): Changed Discover's All Conversations label to white and increased category-card label sizes on desktop and mobile.
 - `v4.50` (2026-07-18): Moved Discover category and title-search results into their own routed view with a Back to categories action. Discover now exposes only live public rooms the member has not joined, excluding matches-only and already-joined conversations.
 - `v4.51` (2026-07-18): Added persistent, category-coloured glows to Discover's square category cards and strengthened those glows on hover and keyboard focus.
+- `v4.52` (2026-07-18): Made Discover category-card glows brighter and substantially broader, while increasing responsive card spacing so the square tiles' glows do not overlap.

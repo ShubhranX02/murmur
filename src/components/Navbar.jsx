@@ -30,7 +30,7 @@ function Navbar() {
                 to="/find"
                 className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
               >
-                Find
+                Discover
               </NavLink>
               <NavLink
                 to="/activity" 

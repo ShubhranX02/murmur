@@ -47,7 +47,7 @@ function FindPage() {
 
   return (
     <div className="find-page animate-fade-in-up">
-      <h1>Find</h1>
+      <h1>Discover</h1>
       <form className="find-form" onSubmit={handleSubmit}>
         <label>
           Search by User ID

@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user enters the Dashboard, then can access The Algorithm, Find, Activity, Matches, Dashboard, and their profile from the navigation bar.
+7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.18` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.19`, `4.20`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.19` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.20`, `4.21`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -144,7 +144,7 @@ Routes are declared in `src/App.jsx`:
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
 | `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
-| `/find` | `FindPage` | Looks up a member by their exact Murmur user ID and opens their profile |
+| `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
 | `/dashboard` | `DashboardPage` | Default post-onboarding page with six empty widget containers in a 3-by-2 grid |
@@ -195,7 +195,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation with compact links ordered The Algorithm, Find, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links.
+- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 20% from the previous values.
 - `MatchCard`: clickable match row with match score and individual score factors.
 - `PercentageRing`: animated SVG compatibility percentage.
 - `ChatBubble`: sent/received chat-message display.
@@ -264,7 +264,7 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
 | `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
 
-The Find page checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
+The Discover page checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
 
 ---
 
@@ -466,3 +466,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.16` (2026-07-17): Completed standardised Indian location selection with a local 2011 Census-based Class X/Y dataset, canonical Firestore location records, and backend ID validation.
 - `v4.17` (2026-07-17): Made the profile description optional while retaining its 100-word limit when supplied.
 - `v4.18` (2026-07-17): Added Dashboard, The Algorithm, and Find navigation/pages; Dashboard is now the post-onboarding destination, and Find supports exact user-ID profile lookup.
+- `v4.19` (2026-07-17): Renamed the Find experience to Discover and increased navbar tab spacing by 20%.

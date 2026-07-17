@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.38` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.39`, `4.40`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.39` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.40`, `4.41`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -498,3 +498,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.36` (2026-07-17): Added a profile-level Add to matches action for eligible unconnected members, a persisted skip option for the weekly YouTube refresh prompt, and shared aggregate YouTube-analysis counts/category breakdowns on every member profile.
 - `v4.37` (2026-07-17): Renamed the user-facing Activities tab and related page/dashboard labels to Conversations; the established `/activity` route and activities API remain unchanged for compatibility.
 - `v4.38` (2026-07-18): Added the Conversations sub-heading and inline Discover link explaining the source of listed conversations.
+- `v4.39` (2026-07-18): Removed the underline from the Discover link in the Conversations sub-heading.

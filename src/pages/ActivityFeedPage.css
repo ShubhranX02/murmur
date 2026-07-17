@@ -28,6 +28,7 @@
 .activity-subheading a {
   color: var(--primary-light);
   font-weight: 600;
+  text-decoration: none;
 }
 
 .start-convo-btn {

@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.58` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.59`, `4.60`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.60` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.61`, `4.62`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -558,3 +558,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.56` (2026-07-18): Changed Discover's All Conversations tile label and glow from pure white to the warm off-white `#FEFCED`.
 - `v4.57` (2026-07-18): Increased the spacing between Discover's category-search area and tile grid by 150%, without changing the separate results view spacing.
 - `v4.58` (2026-07-18): Updated Discover's All Conversations tile label and glow to warm cream `#F5E6D3`.
+- `v4.59` (2026-07-18): Completed a project-context review covering Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
+- `v4.60` (2026-07-18): Softened Discover category-tile glows at rest and on hover/focus while retaining the category colour cues and visible interactive state.

@@ -57,7 +57,7 @@ function DashboardPage() {
             <strong>{matchSummary.totalMatches}</strong>
           </div>
           <div className="dashboard-daily-match">
-            <h2>Today&apos;s Matches</h2>
+            <span className="dashboard-match-label">Today&apos;s Matches</span>
             {matchSummary.todayMatches.length ? (
               <div className="dashboard-daily-avatars" aria-label="Today's new matches">
                 {matchSummary.todayMatches.map(match => (
@@ -70,16 +70,14 @@ function DashboardPage() {
         </section>
         <Link to="/profile" className="dashboard-card dashboard-profile-card glass" aria-label="View your profile">
           <div className="dashboard-profile-summary">
+            <span className="dashboard-profile-label">Your profile</span>
             <img src={user.photoURL || '/default-avatar.png'} alt="" className="dashboard-profile-avatar" />
-            <div>
-              <span className="dashboard-profile-label">Your profile</span>
-              <h2>{user.displayName}</h2>
-              <dl className="dashboard-profile-details">
-                <div><dt>Age</dt><dd>{user.profileDetails?.age || '—'}</dd></div>
-                <div><dt>Gender</dt><dd>{user.profileDetails?.gender || '—'}</dd></div>
-                <div><dt>Location</dt><dd>{[user.profileDetails?.location?.city, user.profileDetails?.location?.state].filter(Boolean).join(', ') || '—'}</dd></div>
-              </dl>
-            </div>
+            <h2>{user.displayName}</h2>
+            <dl className="dashboard-profile-details">
+              <div><dt>Age</dt><dd>{user.profileDetails?.age || '—'}</dd></div>
+              <div><dt>Gender</dt><dd>{user.profileDetails?.gender || '—'}</dd></div>
+              <div><dt>Location</dt><dd>{[user.profileDetails?.location?.city, user.profileDetails?.location?.state].filter(Boolean).join(', ') || '—'}</dd></div>
+            </dl>
           </div>
           <span className="dashboard-profile-link">View profile →</span>
         </Link>

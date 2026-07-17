@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.29` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.30`, `4.31`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.30` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.31`, `4.32`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -147,7 +147,7 @@ Routes are declared in `src/App.jsx`:
 | `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
-| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its taller top-left card welcomes the member, top-centre card shows total and Today’s Matches details before linking to Chats, and top-right card previews the member’s avatar, age, gender, and location before linking to their profile |
+| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 grid of taller widgets; its top-left card uses larger welcome content, top-centre card gives its Total Matches and Today’s Matches halves matching label treatment and roomy spacing, and top-right card centres a large profile avatar above the member’s name, age, gender, and location |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
 | `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
@@ -486,3 +486,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.27` (2026-07-17): Increased desktop and mobile navigation-link spacing by 25%.
 - `v4.28` (2026-07-17): Added seven-day YouTube-data freshness enforcement and manual refresh, location/age-prioritised category-first matching, five initial plus daily delivered matches, Dashboard match details, and yellow highlights for unstarted conversations.
 - `v4.29` (2026-07-17): Made Dashboard widgets taller, added Today’s Matches and arrows to its action links, expanded the profile preview details, and moved YouTube refresh into the Start a Conversation window.
+- `v4.30` (2026-07-17): Increased Dashboard widget height through larger welcome content, roomier match details, and a centred large-avatar profile preview with details beneath it.

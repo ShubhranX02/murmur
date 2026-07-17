@@ -27,7 +27,7 @@ function OnboardingPage() {
 
   useEffect(() => {
     if (isOnboarded && user?.detailsComplete) {
-      navigate('/matches', { replace: true });
+      navigate('/dashboard', { replace: true });
     }
   }, [isOnboarded, navigate, user?.detailsComplete]);
 
@@ -378,8 +378,8 @@ function OnboardingPage() {
               <span className="label">Matches Found</span>
             </div>
             
-            <button className="btn-primary" onClick={() => navigate('/matches')}>
-              View Your Matches
+            <button className="btn-primary" onClick={() => navigate('/dashboard')}>
+              Go to Dashboard
             </button>
           </div>
         )}

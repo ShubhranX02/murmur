@@ -8,7 +8,7 @@ function LandingPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isAuthenticated) navigate(isOnboarded && user?.detailsComplete ? '/matches' : '/onboarding');
+    if (isAuthenticated) navigate(isOnboarded && user?.detailsComplete ? '/dashboard' : '/onboarding');
   }, [isAuthenticated, isOnboarded, navigate, user?.detailsComplete]);
 
   return (

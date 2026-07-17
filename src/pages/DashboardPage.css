@@ -1,0 +1,86 @@
+.dashboard-page,
+.algorithm-page,
+.find-page {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 40px;
+}
+
+.dashboard-header,
+.algorithm-page h1,
+.find-page h1 {
+  margin-bottom: 28px;
+}
+
+.dashboard-header h1,
+.algorithm-page h1,
+.find-page h1 {
+  color: var(--text-primary);
+  font-size: 30px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.dashboard-card {
+  min-height: 190px;
+}
+
+.algorithm-empty {
+  display: grid;
+  min-height: 280px;
+  place-items: center;
+  color: var(--text-secondary);
+  font-size: 17px;
+}
+
+.find-form {
+  width: 100%;
+  max-width: 760px;
+}
+
+.find-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.find-form input {
+  width: 100%;
+  padding: 15px 16px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.find-form input:focus {
+  outline: none;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+
+.find-error {
+  margin-top: 14px;
+  color: #ff8a80;
+}
+
+@media (max-width: 760px) {
+  .dashboard-page,
+  .algorithm-page,
+  .find-page {
+    padding: 28px 20px;
+  }
+
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

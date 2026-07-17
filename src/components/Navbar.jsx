@@ -20,18 +20,35 @@ function Navbar() {
 
           {isAuthenticated && (
             <div className="navbar-links">
-              <NavLink 
+              <NavLink
+                to="/algorithm"
+                className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+              >
+                The Algorithm
+              </NavLink>
+              <NavLink
+                to="/find"
+                className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+              >
+                Find
+              </NavLink>
+              <NavLink
                 to="/activity" 
                 className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
               >
-                Activity
+                Activities
               </NavLink>
-              <span className="nav-divider" />
               <NavLink 
                 to="/matches" 
                 className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
               >
                 Matches
+              </NavLink>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+              >
+                Dashboard
               </NavLink>
               {user?.photoURL && <span className="nav-divider" />}
               {user?.photoURL && (

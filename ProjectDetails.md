@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user views matches, opens chats, and can visit a matched member's shareable profile page.
+7. The user enters the Dashboard, then can access The Algorithm, Find, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.17` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.18`, `4.19`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.18` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.19`, `4.20`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -45,7 +45,7 @@ The app currently displays version `v4.17` in the top-right of the navigation ba
 │   ├── config/appVersion.js     # Visible release version
 │   ├── data/indiaXyCities.json  # Canonical eligible Indian locations
 │   ├── contexts/AuthContext.jsx # Client session and API helpers
-│   ├── pages/                   # Landing, onboarding, matches, chat, profile
+│   ├── pages/                   # Landing, onboarding, dashboard, discovery, matches, chat, profile
 │   ├── App.jsx                  # Routes and application shell
 │   ├── main.jsx                 # React entry point
 │   └── index.css                # Design tokens and shared styles
@@ -143,8 +143,11 @@ Routes are declared in `src/App.jsx`:
 | --- | --- | --- |
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
+| `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
+| `/find` | `FindPage` | Looks up a member by their exact Murmur user ID and opens their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
+| `/dashboard` | `DashboardPage` | Default post-onboarding page with six empty widget containers in a 3-by-2 grid |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
 | `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
@@ -171,6 +174,7 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 5. The app stores the short-lived access token in the backend’s in-memory token store.
 6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
 7. After analysis, the user must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words. The details are then stored before the completion/match-count screen.
+8. Completing onboarding, visiting the landing page while already fully onboarded, or signing in as a fully onboarded user takes the member to `/dashboard`.
 
 ### Standardised Indian locations
 
@@ -191,7 +195,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation, Matches link, clickable user avatar that opens Profile, and version badge.
+- `Navbar`: fixed top navigation with compact links ordered The Algorithm, Find, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links.
 - `MatchCard`: clickable match row with match score and individual score factors.
 - `PercentageRing`: animated SVG compatibility percentage.
 - `ChatBubble`: sent/received chat-message display.
@@ -259,6 +263,8 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 | `POST` | `/send` | `{ "chatId", "senderId", "text" }` | Creates a message and updates chat metadata |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
 | `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
+
+The Find page checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
 
 ---
 
@@ -459,3 +465,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.15` (2026-07-17): Project architecture, APIs, technical stack, deployment model, product vision, and current limitations reviewed and documented as the active project context.
 - `v4.16` (2026-07-17): Completed standardised Indian location selection with a local 2011 Census-based Class X/Y dataset, canonical Firestore location records, and backend ID validation.
 - `v4.17` (2026-07-17): Made the profile description optional while retaining its 100-word limit when supplied.
+- `v4.18` (2026-07-17): Added Dashboard, The Algorithm, and Find navigation/pages; Dashboard is now the post-onboarding destination, and Find supports exact user-ID profile lookup.

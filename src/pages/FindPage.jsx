@@ -20,7 +20,7 @@ function FindPage() {
   const [joiningId, setJoiningId] = useState(null);
 
   const categories = useMemo(() => [
-    { id: 'all', name: 'All Conversations', colour: CATEGORY_COLOURS[0] },
+    { id: 'all', name: 'All Conversations', colour: '#ffffff' },
     ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index + 1] }))
   ], []);
   const isShowingResults = hasSelectedCategory || Boolean(search.trim());

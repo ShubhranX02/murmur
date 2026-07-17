@@ -33,7 +33,7 @@
   color: var(--category-colour);
   cursor: pointer;
   font: inherit;
-  font-size: 18px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.3;
   text-align: center;
@@ -62,7 +62,7 @@
 @media (max-width: 760px) {
   .discover-page { padding: 28px 20px; }
   .discover-category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-  .discover-category-card { padding: 16px; font-size: 15px; }
+  .discover-category-card { padding: 16px; font-size: 18px; }
   .discover-conversation-item { align-items: flex-start; flex-wrap: wrap; }
   .discover-video-thumbnail, .discover-video-placeholder { width: 100px; height: 56px; }
   .discover-join-button { margin-left: auto; }

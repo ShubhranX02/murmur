@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to find public or eligible matches-only video conversations by YouTube category or title; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.48` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.49`, `4.50`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.49` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.50`, `4.51`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -547,3 +547,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.46` (2026-07-18): Configured Discover for recency-sorted public and eligible matches-only video conversations, with all supported YouTube-category cards, video-title search, and direct room joining. Conversation creation now supports Public/Matches Only audiences and a 30-person total-room cap.
 - `v4.47` (2026-07-18): Completed a project-context review covering Murmur's vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
 - `v4.48` (2026-07-18): Restyled Discover category cards as square, page-toned tiles with a unique new text colour for every category; category-card backgrounds are now intentionally uniform rather than multicoloured.
+- `v4.49` (2026-07-18): Changed Discover's All Conversations label to white and increased category-card label sizes on desktop and mobile.

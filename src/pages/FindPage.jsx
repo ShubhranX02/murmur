@@ -5,7 +5,7 @@ import { CATEGORY_MAP } from '../config/categories';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './FindPage.css';
 
-const CATEGORY_COLOURS = ['#e74c3c', '#8e44ad', '#2471a3', '#148f77', '#d35400', '#b03a2e', '#6c3483', '#1f618d', '#117864', '#7d6608', '#a04000', '#633974', '#21618c', '#0e6655', '#784212'];
+const CATEGORY_COLOURS = ['#ffb703', '#fb8500', '#e76f51', '#e9c46a', '#f4a261', '#ef476f', '#d65db1', '#9b5de5', '#5e60ce', '#4895ef', '#00b4d8', '#06d6a0', '#80ed99', '#b8f2e6', '#caffbf', '#ffd6a5'];
 
 function FindPage() {
   const { user, isAuthenticated, isOnboarded } = useAuth();
@@ -20,8 +20,8 @@ function FindPage() {
   const [joiningId, setJoiningId] = useState(null);
 
   const categories = useMemo(() => [
-    { id: 'all', name: 'All Conversations', colour: '#ffffff' },
-    ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index % CATEGORY_COLOURS.length] }))
+    { id: 'all', name: 'All Conversations', colour: CATEGORY_COLOURS[0] },
+    ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index + 1] }))
   ], []);
   const isShowingResults = hasSelectedCategory || Boolean(search.trim());
   const selectedCategoryName = categories.find(category => category.id === selectedCategory)?.name || 'All Conversations';
@@ -100,7 +100,7 @@ function FindPage() {
 
       <section className="discover-category-grid" aria-label="Conversation categories">
         {categories.map(category => (
-          <button key={category.id} type="button" className={`discover-category-card ${selectedCategory === category.id && hasSelectedCategory ? 'is-selected' : ''} ${category.id === 'all' ? 'is-all-category' : ''}`} style={{ '--category-colour': category.colour }} onClick={() => selectCategory(category.id)}>
+          <button key={category.id} type="button" className={`discover-category-card ${selectedCategory === category.id && hasSelectedCategory ? 'is-selected' : ''}`} style={{ '--category-colour': category.colour }} onClick={() => selectCategory(category.id)}>
             {category.name}
           </button>
         ))}

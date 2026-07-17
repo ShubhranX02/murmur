@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.30` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.31`, `4.32`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.31` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.32`, `4.33`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -361,7 +361,7 @@ Fields currently written include:
 
 ### `matchDeliveries/{userId_otherUserId}`
 
-Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
+Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. The Matches API exposes the other member as `userId` (and the recipient separately as `recipientUserId`) so profile and chat links target the matched member. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
 
 ### `chats/{chatId}` and `chats/{chatId}/messages/{messageId}`
 
@@ -487,3 +487,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.28` (2026-07-17): Added seven-day YouTube-data freshness enforcement and manual refresh, location/age-prioritised category-first matching, five initial plus daily delivered matches, Dashboard match details, and yellow highlights for unstarted conversations.
 - `v4.29` (2026-07-17): Made Dashboard widgets taller, added Today’s Matches and arrows to its action links, expanded the profile preview details, and moved YouTube refresh into the Start a Conversation window.
 - `v4.30` (2026-07-17): Increased Dashboard widget height through larger welcome content, roomier match details, and a centred large-avatar profile preview with details beneath it.
+- `v4.31` (2026-07-17): Corrected delivered-match API identifiers so profile and chat links from Matches target the other member rather than the signed-in member.

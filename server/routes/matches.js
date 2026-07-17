@@ -185,6 +185,10 @@ async function listDeliveredMatches(userId) {
   return deliveries
     .map(delivery => ({
       ...delivery,
+      // The client treats userId as the matched member. Keep the recipient
+      // separately so profile and chat links never route back to themselves.
+      recipientUserId: delivery.userId,
+      userId: delivery.otherUserId,
       hasUnreadMessages: chatStatuses.get(delivery.matchId)?.hasUnreadMessages || false,
       hasStartedConversation: chatStatuses.get(delivery.matchId)?.hasStartedConversation || false,
       deliveredToday: delivery.deliveredDate === today

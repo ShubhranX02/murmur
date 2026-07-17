@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.52` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.53`, `4.54`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.53` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.54`, `4.55`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -552,3 +552,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.50` (2026-07-18): Moved Discover category and title-search results into their own routed view with a Back to categories action. Discover now exposes only live public rooms the member has not joined, excluding matches-only and already-joined conversations.
 - `v4.51` (2026-07-18): Added persistent, category-coloured glows to Discover's square category cards and strengthened those glows on hover and keyboard focus.
 - `v4.52` (2026-07-18): Made Discover category-card glows brighter and substantially broader, while increasing responsive card spacing so the square tiles' glows do not overlap.
+- `v4.53` (2026-07-18): Reduced the maximum size and internal padding of Discover's square category tiles while retaining their bright, separated glows.

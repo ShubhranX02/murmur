@@ -16,7 +16,8 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
   const [replyTo, setReplyTo] = useState(null);
   const messagesEndRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const chatId = match && user ? [user.id, match.userId].sort().join('_') : null;
+  const matchedUserId = match?.otherUserId || match?.userId;
+  const chatId = matchedUserId && user ? [user.id, matchedUserId].sort().join('_') : null;
 
   useEffect(() => { setMessages([]); setInputText(''); setEditingId(null); setReplyTo(null); }, [chatId]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -79,10 +80,10 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
         >
           {isSidebarCollapsed ? '☰' : '◀'}
         </button>
-        <button type="button" className="conversation-profile-link" onClick={() => navigate(`/profile/${match.userId}`)} aria-label={`View ${match.displayName}'s profile`}>
+        <button type="button" className="conversation-profile-link" onClick={() => navigate(`/profile/${matchedUserId}`)} aria-label={`View ${match.displayName}'s profile`}>
           <img className="conversation-avatar" src={match.photoURL || '/default-avatar.png'} alt={match.displayName} />
         </button>
-        <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${match.userId}`)}>
+        <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${matchedUserId}`)}>
           <h2>{match.displayName}</h2>
         </button>
         <MatchScore score={match.score} className="match-score-info--header" />

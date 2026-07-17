@@ -32,7 +32,13 @@ function MatchesPage() {
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/matches/${user.id}`);
         if (!res.ok) throw new Error('Failed to fetch matches');
         const data = await res.json();
-        setMatches(data.matches || []);
+        // Match-delivery records retain both IDs. Prefer the other member's
+        // ID so links and conversations cannot accidentally target the
+        // signed-in recipient when reading an older API response.
+        setMatches((data.matches || []).map(match => ({
+          ...match,
+          userId: match.otherUserId || match.userId
+        })));
       } catch (err) {
         console.error('Error fetching matches:', err);
         setError('Could not load your matches. Please try again later.');
@@ -46,7 +52,7 @@ function MatchesPage() {
     return () => clearInterval(interval);
   }, [user, isAuthenticated, isOnboarded, navigate]);
 
-  const activeMatch = matches.find(match => match.userId === matchId);
+  const activeMatch = matches.find(match => (match.otherUserId || match.userId) === matchId);
 
   // Automatically expand sidebar if there is no active match selected
   useEffect(() => {
@@ -64,7 +70,7 @@ function MatchesPage() {
   }
 
   const selectMatch = (match) => {
-    navigate(`/matches/${match.userId}`);
+    navigate(`/matches/${match.otherUserId || match.userId}`);
   };
 
   const handleMatchAction = (action, targetMatch) => {
@@ -136,7 +142,7 @@ function MatchesPage() {
                   match={match}
                   delay={`${index * 0.05}s`}
                   onSelect={selectMatch}
-                  isSelected={match.userId === matchId}
+                  isSelected={(match.otherUserId || match.userId) === matchId}
                   onAction={handleMatchAction}
                 />
               ))}

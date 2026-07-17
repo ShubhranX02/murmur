@@ -7,6 +7,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const matchedUserId = match.otherUserId || match.userId;
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -38,7 +39,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
 
   const openProfile = event => {
     preventChatOpen(event);
-    navigate(`/profile/${match.userId}`);
+    navigate(`/profile/${matchedUserId}`);
   };
 
   const handleAction = (event, action) => {

@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.40` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.41`, `4.42`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.43` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.44`, `4.45`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -145,8 +145,8 @@ Routes are declared in `src/App.jsx`:
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
 | `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
 | `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
-| `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
-| `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
+| `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a direct match or group to open its conversation, or use the Chats-header plus button to create a group |
+| `/matches/:matchId` | `MatchesPage` | Opens a selected direct match or group in the workspace chat panel |
 | `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 grid of taller widgets; its top-left card uses larger welcome content, top-centre card gives its Total Matches and Today’s Matches halves matching label treatment and roomy spacing, and top-right card centres a large profile avatar above the member’s name, age, gender, and location |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
@@ -267,6 +267,8 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/send` | `{ "chatId", "senderId", "text" }` | Creates a message and updates chat metadata |
+| `POST` | `/groups` | `{ "creatorId", "name", "memberIds" }` | Creates a named group chat. Selected members must be matches of the creator; an empty selection creates a creator-only group. |
+| `GET` | `/groups/:userId` | None | Returns group chats that include the member, including unread and started-conversation status |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
 | `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
 
@@ -405,7 +407,7 @@ The backend writes:
 }
 ```
 
-Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Delivered matches with no sent chat message are additionally highlighted in yellow. The Matches page presents the match list and the active conversation in one desktop-style workspace; before a match is selected, its chat panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
+Chat messages are retrieved with polling every three seconds in the frontend. The direct-match and group-chat list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Delivered matches with no sent chat message are additionally highlighted in yellow. The Matches page presents the chat list and active conversation in one desktop-style workspace; the plus button beside **Chats** opens a dialog for a group name and zero or more matched members. Before a chat is selected, its panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
 
 ---
 
@@ -517,3 +519,6 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.38` (2026-07-18): Added the Conversations sub-heading and inline Discover link explaining the source of listed conversations.
 - `v4.39` (2026-07-18): Removed the underline from the Discover link in the Conversations sub-heading.
 - `v4.40` (2026-07-18): Added a continuous, ranking-preserving positive score scale that maps raw match scores to the requested more appealing displayed ranges and applies it to legacy deliveries at read time.
+- `v4.41` (2026-07-18): Added named group chats to Matches: a Chats-header creation dialog, match-only invitations, persistent Firestore group records, group list entries, and group message delivery.
+- `v4.42` (2026-07-18): Completed project-context review, including Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google/YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
+- `v4.43` (2026-07-18): Completed and verified group chats in Matches, including the Chats-header creation control, group naming and match selection, protected group creation, persisted group-list entries, and group messaging.

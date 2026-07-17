@@ -16,8 +16,11 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
   const [replyTo, setReplyTo] = useState(null);
   const messagesEndRef = useRef(null);
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const isGroup = Boolean(match?.isGroup);
   const matchedUserId = match?.otherUserId || match?.userId;
-  const chatId = matchedUserId && user ? [user.id, matchedUserId].sort().join('_') : null;
+  const chatId = isGroup
+    ? match.chatId
+    : matchedUserId && user ? [user.id, matchedUserId].sort().join('_') : null;
 
   useEffect(() => { setMessages([]); setInputText(''); setEditingId(null); setReplyTo(null); }, [chatId]);
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -66,7 +69,7 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
     if (action === 'Pin') setMessages(current => current.map(item => item.id === message.id ? { ...item, pinned: !item.pinned } : item));
   };
 
-  if (!match) return <section className="conversation-pane empty-conversation"><div className="empty-conversation-content"><span className="empty-conversation-icon">💬</span><h2>Click on any chat to message</h2><p>Select a match from the left to start a conversation.</p></div></section>;
+  if (!match) return <section className="conversation-pane empty-conversation"><div className="empty-conversation-content"><span className="empty-conversation-icon">💬</span><h2>Click on any chat to message</h2><p>Select a match or group from the left to start a conversation.</p></div></section>;
 
   return (
     <section className="conversation-pane">
@@ -80,16 +83,25 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
         >
           {isSidebarCollapsed ? '☰' : '◀'}
         </button>
-        <button type="button" className="conversation-profile-link" onClick={() => navigate(`/profile/${matchedUserId}`)} aria-label={`View ${match.displayName}'s profile`}>
-          <img className="conversation-avatar" src={match.photoURL || '/default-avatar.png'} alt={match.displayName} />
-        </button>
-        <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${matchedUserId}`)}>
-          <h2>{match.displayName}</h2>
-        </button>
-        <MatchScore score={match.score} className="match-score-info--header" />
+        {isGroup ? (
+          <div className="conversation-group-heading">
+            <span className="conversation-group-icon" aria-hidden="true">👥</span>
+            <div><h2>{match.displayName}</h2><p>{match.memberCount} member{match.memberCount === 1 ? '' : 's'}</p></div>
+          </div>
+        ) : (
+          <>
+            <button type="button" className="conversation-profile-link" onClick={() => navigate(`/profile/${matchedUserId}`)} aria-label={`View ${match.displayName}'s profile`}>
+              <img className="conversation-avatar" src={match.photoURL || '/default-avatar.png'} alt={match.displayName} />
+            </button>
+            <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${matchedUserId}`)}>
+              <h2>{match.displayName}</h2>
+            </button>
+            <MatchScore score={match.score} className="match-score-info--header" />
+          </>
+        )}
       </header>
       <div className="conversation-messages">
-        {messages.length === 0 ? <div className="conversation-empty-state">Say hi to {match.displayName}! You both share a great YouTube taste.</div> : messages.map((message, index) => (
+        {messages.length === 0 ? <div className="conversation-empty-state">{isGroup ? `Start the conversation in ${match.displayName}.` : `Say hi to ${match.displayName}! You both share a great YouTube taste.`}</div> : messages.map((message, index) => (
           <ChatBubble key={message.id} message={message} isSent={message.senderId === user.id} senderPhoto={message.senderId === user.id ? user.photoURL : match.photoURL} showAvatar={index === 0 || messages[index - 1].senderId !== message.senderId} onDoubleClick={() => setMessageMenu(message)} />
         ))}
         <div ref={messagesEndRef} />

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import ChatBubble from './ChatBubble';
+import MatchScore from './MatchScore';
 import './ChatPanel.css';
 
 function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
@@ -83,8 +84,8 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
         </button>
         <button type="button" className="conversation-profile-name" onClick={() => navigate(`/profile/${match.userId}`)}>
           <h2>{match.displayName}</h2>
-          <span>{match.score}% Match</span>
         </button>
+        <MatchScore score={match.score} className="match-score-info--header" />
       </header>
       <div className="conversation-messages">
         {messages.length === 0 ? <div className="conversation-empty-state">Say hi to {match.displayName}! You both share a great YouTube taste.</div> : messages.map((message, index) => (

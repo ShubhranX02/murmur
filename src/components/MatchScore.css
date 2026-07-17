@@ -1,0 +1,72 @@
+.match-score-info {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+}
+
+.match-score-info-value {
+  color: var(--primary-light);
+  font-weight: 700;
+}
+
+.match-score-info-tooltip {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 12px);
+  left: 50%;
+  width: min(280px, 75vw);
+  padding: 12px 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: #202033;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.5;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -4px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  visibility: hidden;
+}
+
+.match-score-info:hover .match-score-info-tooltip,
+.match-score-info:focus-visible .match-score-info-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  visibility: visible;
+}
+
+.match-score-info:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 4px;
+}
+
+.match-score-info--list {
+  min-width: 72px;
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.match-score-info--list .match-score-info-value {
+  font-size: 18px;
+  text-decoration: underline dotted rgba(255, 82, 82, 0.65);
+  text-underline-offset: 4px;
+}
+
+.match-score-info--header .match-score-info-value {
+  font-size: 12px;
+}
+
+.match-score-info--profile {
+  margin-top: 14px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 82, 82, 0.35);
+  border-radius: var(--radius-full);
+  background: rgba(229, 57, 53, 0.1);
+}
+
+.match-score-info--profile .match-score-info-value {
+  font-size: 14px;
+}

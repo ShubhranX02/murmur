@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MatchScore from './MatchScore';
 import './MatchCard.css';
 
 function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction }) {
@@ -76,20 +77,8 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
       </div>
       </button>
       
-      <div className="match-score-wrapper">
-        <span
-          className="match-score"
-          tabIndex="0"
-          aria-label={`${match.score}% match. Focus or hover for score details.`}
-          onClick={preventChatOpen}
-          onKeyDown={preventChatOpen}
-        >
-          {match.score}%
-        </span>
-        <div className="match-score-tooltip" role="tooltip">
-          <div><span>Content vibe</span><strong>{match.embeddingScore}%</strong></div>
-          <div><span>Categories</span><strong>{match.categoryScore}%</strong></div>
-        </div>
+      <div className="match-score-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
+        <MatchScore score={match.score} className="match-score-info--list" />
       </div>
 
       <div ref={menuRef} className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>

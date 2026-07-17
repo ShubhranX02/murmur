@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext';
 import CategoryRingChart from '../components/CategoryRingChart';
 import LoadingSpinner from '../components/LoadingSpinner';
 import IndiaLocationPicker from '../components/IndiaLocationPicker';
+import MatchScore from '../components/MatchScore';
 import './ProfilePage.css';
 
 const emptyDetails = {
@@ -35,6 +36,7 @@ function ProfilePage() {
   const [isSaving, setIsSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [matchScore, setMatchScore] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -46,6 +48,7 @@ function ProfilePage() {
     const loadProfile = async () => {
       setLoading(true);
       setError(null);
+      setMatchScore(null);
       try {
         const response = await fetch(`${apiUrl}/api/auth/profile/${targetUserId}`);
         const data = await response.json().catch(() => ({}));
@@ -53,6 +56,16 @@ function ProfilePage() {
         if (!active) return;
         setProfile(data.profile);
         setFormDetails(toFormDetails(data.profile.profileDetails));
+
+        if (!isOwnProfile) {
+          try {
+            const scoreResponse = await fetch(`${apiUrl}/api/matches/${user.id}/${targetUserId}`);
+            const scoreData = await scoreResponse.json().catch(() => ({}));
+            if (active && scoreResponse.ok) setMatchScore(scoreData.match?.score ?? null);
+          } catch (scoreError) {
+            console.warn('Could not load match score', scoreError);
+          }
+        }
       } catch (fetchError) {
         // The signed-in user can still edit their cached profile if a refresh
         // happens while the server is temporarily unavailable.
@@ -150,6 +163,7 @@ function ProfilePage() {
           {isOwnProfile && <p className="profile-email">{user.email}</p>}
           {!isOwnProfile && <p className="profile-relationship">Murmur member</p>}
           <p className="profile-member-id">Member ID: {profile.id}</p>
+          {!isOwnProfile && <MatchScore score={matchScore} className="match-score-info--profile" />}
           {!isOwnProfile && (
             <button className="btn-primary profile-message-button" onClick={() => navigate(`/matches/${profile.id}`)}>
               Message

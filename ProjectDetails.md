@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.20` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.21`, `4.22`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.22` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.23`, `4.24`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -196,7 +196,8 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 ### UI components
 
 - `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 20% from the previous values.
-- `MatchCard`: clickable match row with match score and individual score factors.
+- `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
+- `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
 - `PercentageRing`: animated SVG compatibility percentage.
 - `ChatBubble`: sent/received chat-message display.
 - `LoadingSpinner`: shared progress indicator.
@@ -252,6 +253,7 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds profile, saves it, calculates matches, returns them |
+| `GET` | `/:userId/:otherUserId` | None | Calculates the current user-to-user match score for display on a member profile |
 | `GET` | `/:userId` | None | Calculates and returns the user’s current top 10 matches, ordered by ascending percentage and annotated with unread-chat status |
 
 The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
@@ -468,3 +470,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.18` (2026-07-17): Added Dashboard, The Algorithm, and Find navigation/pages; Dashboard is now the post-onboarding destination, and Find supports exact user-ID profile lookup.
 - `v4.19` (2026-07-17): Renamed the Find experience to Discover and increased navbar tab spacing by 20%.
 - `v4.20` (2026-07-17): Expanded the Dashboard grid to the available page width and added the requested top-left welcome card with a The Algorithm link.
+- `v4.21` (2026-07-17): Matched the Activities page width to Discover and The Algorithm, and removed the colored border around chat-list avatars.
+- `v4.22` (2026-07-17): Added current match-score display to other-member profiles and standardized the explanatory score tooltip across match lists, chat headers, and profiles.

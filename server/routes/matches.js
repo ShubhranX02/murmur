@@ -182,6 +182,38 @@ router.post('/compute', async (req, res) => {
   }
 });
 
+router.get('/:userId/:otherUserId', async (req, res) => {
+  try {
+    const { userId, otherUserId } = req.params;
+
+    if (!db) {
+      return firestoreUnavailable(res);
+    }
+
+    const [userDoc, otherUserDoc] = await Promise.all([
+      runFirestore(() => db.collection('users').doc(userId).get()),
+      runFirestore(() => db.collection('users').doc(otherUserId).get())
+    ]);
+
+    if (!userDoc.exists || !otherUserDoc.exists || !userDoc.data().onboarded || !otherUserDoc.data().onboarded) {
+      return res.status(404).json({ error: 'A match score is not available for this member.' });
+    }
+
+    return res.json({
+      match: {
+        matchId: getMatchId(userId, otherUserId),
+        userId: otherUserId,
+        ...computeMatchScore(userDoc.data(), otherUserDoc.data())
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching match score:', error);
+    return res.status(error.status || 500).json({
+      error: error.status ? error.message : 'Could not calculate this match score.'
+    });
+  }
+});
+
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './ActivityFeedPage.css';
@@ -57,7 +57,12 @@ function ActivityFeedPage() {
   return (
     <div className="activity-page animate-fade-in-up">
       <div className="activity-header">
-        <h1>Conversations</h1>
+        <div>
+          <h1>Conversations</h1>
+          <p className="activity-subheading">
+            Here you can see the conversations started by your matches and the conversations you joined from <Link to="/find">Discover</Link>
+          </p>
+        </div>
         <button className="btn-primary start-convo-btn" onClick={() => navigate('/activity/create')}>
           <span className="plus-icon">+</span> Start Conversation
         </button>

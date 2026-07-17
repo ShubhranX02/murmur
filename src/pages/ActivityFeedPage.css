@@ -18,6 +18,18 @@
   margin: 0;
 }
 
+.activity-subheading {
+  max-width: 680px;
+  margin: 8px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.activity-subheading a {
+  color: var(--primary-light);
+  font-weight: 600;
+}
+
 .start-convo-btn {
   display: flex;
   align-items: center;

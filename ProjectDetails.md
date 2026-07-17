@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.34` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.35`, `4.36`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.35` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.36`, `4.37`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -491,3 +491,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.32` (2026-07-17): Added a client-side other-member-ID fallback for Matches navigation, protecting profile and chat links from older delivery-response shapes.
 - `v4.33` (2026-07-17): Applied explicit other-member ID resolution to chat selection and active-chat profile links as well as match-list profile links.
 - `v4.34` (2026-07-17): Restructured Dashboard bottom row: Activities link in bottom-left, empty placeholder in bottom-centre, Algorithm link with heading and description in bottom-right; removed Algorithm link from the welcome card.
+- `v4.35` (2026-07-17): Completed project-context review, covering Murmur's product vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment, and production priorities.

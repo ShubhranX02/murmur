@@ -20,7 +20,7 @@ function FindPage() {
   const [joiningId, setJoiningId] = useState(null);
 
   const categories = useMemo(() => [
-    { id: 'all', name: 'All Conversations', colour: '#ffffff' },
+    { id: 'all', name: 'All Conversations', colour: '#FEFCED' },
     ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index + 1] }))
   ], []);
   const isResultsView = Boolean(categoryId);
@@ -138,7 +138,7 @@ function FindPage() {
         </>
       ) : (
         <>
-          <header className="discover-header">
+          <header className="discover-header discover-category-header">
             <h1>Discover</h1>
             <p>Find live conversations around the videos and topics you care about.</p>
             <form className="discover-search-form" onSubmit={openSearchResults}>

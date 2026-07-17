@@ -240,7 +240,8 @@ router.post('/compute', async (req, res) => {
           id: video.id,
           title: video.snippet?.title || 'Unknown Title',
           channelTitle: video.snippet?.channelTitle || 'Unknown Creator',
-          thumbnailUrl: video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url || null
+          thumbnailUrl: video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url || null,
+          categoryId: video.snippet?.categoryId || null
         }))
       },
       youtubeRefreshSkipped: false,

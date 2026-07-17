@@ -80,7 +80,8 @@ function ActivityFeedPage() {
         ) : (
           <div className="activity-grid">
             {activities.map((act) => {
-              const isFull = act.participants?.length >= act.limit + 1;
+              const participantLimit = act.participantLimit || act.limit + 1;
+              const isFull = act.participants?.length >= participantLimit;
               const hasJoined = act.participants?.includes(user.id);
               
               return (
@@ -102,7 +103,7 @@ function ActivityFeedPage() {
                     <div className="activity-meta">
                       <span className="activity-publisher">Started by {act.publisherId === user.id ? 'You' : act.publisherName}</span>
                       <span className={`activity-participants ${isFull ? 'text-danger' : ''}`}>
-                        {act.participants?.length || 1} / {act.limit + 1} Joined
+                        {act.participants?.length || 1} / {participantLimit} Joined
                       </span>
                     </div>
                   </div>

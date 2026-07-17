@@ -11,8 +11,10 @@ function CreateActivityPage() {
   
   const [search, setSearch] = useState('');
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [limit, setLimit] = useState('2');
+  const [participantLimit, setParticipantLimit] = useState('2');
   const [timeLimit, setTimeLimit] = useState('24');
+  const [audience, setAudience] = useState('matches');
+  const [isAudienceMenuOpen, setIsAudienceMenuOpen] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
@@ -120,8 +122,9 @@ function CreateActivityPage() {
         body: JSON.stringify({
           publisherId: user.id,
           video: selectedVideo,
-          limit: parseInt(limit, 10),
-          expiresInHours: parseInt(timeLimit, 10)
+          participantLimit: parseInt(participantLimit, 10),
+          expiresInHours: parseInt(timeLimit, 10),
+          audience
         })
       });
       
@@ -199,15 +202,21 @@ function CreateActivityPage() {
             
             <div className="form-row">
               <div className="form-group">
-                <label>2. Participant Limit</label>
-                <select value={limit} onChange={e => setLimit(e.target.value)} className="glass-input">
-                  <option value="1">1 Person</option>
+                <label>2. Number of people</label>
+                <select value={participantLimit} onChange={e => setParticipantLimit(e.target.value)} className="glass-input">
                   <option value="2">2 People</option>
                   <option value="3">3 People</option>
+                  <option value="4">4 People</option>
                   <option value="5">5 People</option>
+                  <option value="6">6 People</option>
+                  <option value="8">8 People</option>
                   <option value="10">10 People</option>
+                  <option value="15">15 People</option>
+                  <option value="20">20 People</option>
+                  <option value="25">25 People</option>
+                  <option value="30">30 People</option>
                 </select>
-                <small className="form-help">Excluding yourself</small>
+                <small className="form-help">Including you; maximum 30 people</small>
               </div>
               
               <div className="form-group">
@@ -221,6 +230,21 @@ function CreateActivityPage() {
                   <option value="168">7 days</option>
                 </select>
                 <small className="form-help">Room will automatically expire</small>
+              </div>
+
+              <div className="form-group audience-form-group">
+                <label id="audience-label">4. Who can participate</label>
+                <div className="audience-dropdown">
+                  <button type="button" className="audience-dropdown-trigger glass-input" onClick={() => setIsAudienceMenuOpen(open => !open)} aria-haspopup="listbox" aria-expanded={isAudienceMenuOpen} aria-labelledby="audience-label">
+                    <span>{audience === 'public' ? 'Public' : 'Matches Only'}</span><small>{audience === 'public' ? 'Anyone who discovers this conversation' : 'Only your matches can join'}</small>
+                  </button>
+                  {isAudienceMenuOpen && (
+                    <div className="audience-dropdown-menu" role="listbox" aria-label="Who can participate">
+                      <button type="button" role="option" aria-selected={audience === 'public'} onClick={() => { setAudience('public'); setIsAudienceMenuOpen(false); }}><span>Public</span><small>Anyone who discovers this conversation</small></button>
+                      <button type="button" role="option" aria-selected={audience === 'matches'} onClick={() => { setAudience('matches'); setIsAudienceMenuOpen(false); }}><span>Matches Only</span><small>Only your matches can join</small></button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
             

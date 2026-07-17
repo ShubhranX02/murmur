@@ -49,7 +49,6 @@ function DashboardPage() {
         <section className="dashboard-card dashboard-welcome-card glass">
           <h2>Welcome to Murmur</h2>
           <p>Discover people who share your passions through your YouTube feed. No bios, no swiping — just genuine connections built on what you actually love.</p>
-          <Link to="/algorithm" className="dashboard-algorithm-link">View The Algorithm →</Link>
         </section>
         <section className="dashboard-card dashboard-match-details-card glass">
           <div className="dashboard-match-total">
@@ -81,7 +80,17 @@ function DashboardPage() {
           </div>
           <span className="dashboard-profile-link">View profile →</span>
         </Link>
-        {Array.from({ length: 3 }, (_, index) => <section className="dashboard-card glass" key={index} />)}
+        <section className="dashboard-card dashboard-content-card glass">
+          <h2>Shared interests, endless gossip</h2>
+          <p>Start or join in on a conversation with the people you cherish and on the topic you enjoy discussing.</p>
+          <Link to="/activity" className="dashboard-content-link">Start an Activity →</Link>
+        </section>
+        <section className="dashboard-card glass" />
+        <section className="dashboard-card dashboard-content-card glass">
+          <h2>The Invisible Thread</h2>
+          <p>Your pairing wasn&apos;t an accident. See the data and compatibility factors that made this match happen.</p>
+          <Link to="/algorithm" className="dashboard-content-link">Discover how you get Matched →</Link>
+        </section>
       </div>
     </div>
   );

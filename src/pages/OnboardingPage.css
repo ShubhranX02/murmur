@@ -308,6 +308,10 @@
 
 .profile-details-form textarea { resize: vertical; }
 
+.onboarding-skip-refresh {
+  margin-top: 12px;
+}
+
 .profile-details-form input:focus,
 .profile-details-form select:focus,
 .profile-details-form textarea:focus {

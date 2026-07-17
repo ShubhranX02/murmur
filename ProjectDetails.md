@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
+7. The user enters the Dashboard, then can access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.35` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.36`, `4.37`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.37` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.38`, `4.39`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -168,11 +168,11 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 `OnboardingPage.jsx` is intentionally structured as a single flow:
 
 1. If there is no user, it renders the Google Identity Services sign-in button.
-2. Murmur treats YouTube data as current for seven days. On local-session restoration, expired or missing YouTube data clears the session and requires a new Google sign-in. On sign-in, the backend also marks a profile with missing or week-old data as requiring refresh; those members are sent to onboarding to reconnect YouTube before entering the app.
+2. Murmur treats YouTube data as current for seven days. On local-session restoration, expired or missing YouTube data clears the session and requires a new Google sign-in. On sign-in, the backend marks a profile with missing or week-old data as requiring refresh; those members are sent to onboarding, where they can reconnect YouTube or continue with their saved taste profile.
 3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
-6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data**; the Start a Conversation window also offers a manual **Refresh YouTube data** action.
+6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data** and, after a weekly refresh prompt, can instead choose **Continue with saved taste profile**. The Start a Conversation window also offers a manual **Refresh YouTube data** action.
 7. A new member must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words before their first match calculation. This lets location and age influence initial recommendations.
 8. The server then builds the taste profile, delivers up to five initial matches, and shows the completion/match-count screen.
 8. Completing onboarding, visiting the landing page while already fully onboarded, or signing in as a fully onboarded user takes the member to `/dashboard`.
@@ -185,7 +185,7 @@ Each list entry has an app-stable canonical `id`, canonical `city`, `state`, `co
 
 The reusable `IndiaLocationPicker` is used both during onboarding and on a member’s profile-edit screen. Older profiles with free-text locations are preserved for display, but a member must select an eligible canonical location when they next save their details.
 
-Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile also sees a **Message** button that opens that member's conversation in the Matches workspace. Public profiles never return email addresses, embeddings, category distributions, or YouTube viewing data.
+Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile sees **Message** when already matched, or **Add to matches** when eligible but not yet in their Matches list. Every onboarded profile displays its aggregate liked-video count, number of analysed categories, and category-breakdown chart. Public profiles never return email addresses, raw YouTube data, or embeddings.
 
 The Google client ID is resolved in this order:
 
@@ -196,7 +196,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
+- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Conversations, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
 - `PercentageRing`: animated SVG compatibility percentage.
@@ -238,8 +238,9 @@ Expected successful response:
 | `GET` | `/google-client-id` | None | Returns `{ "clientId": "..." }` from `GOOGLE_CLIENT_ID`; returns 503 when missing |
 | `POST` | `/google` | `{ "credential": "Google ID token" }` | Parses user identity, upserts basic user fields, returns `{ user }` |
 | `POST` | `/youtube-token` | `{ "accessToken", "userId" }` | Stores the token in memory for subsequent YouTube fetches |
-| `GET` | `/profile/:userId` | None | Returns a safe public profile: name, avatar, onboarding state, and profile details only |
+| `GET` | `/profile/:userId` | None | Returns a public profile: name, avatar, onboarding state, profile details, liked-video analysis count, and category distribution; excludes email, raw YouTube data, and embeddings |
 | `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "id" }, "age", "gender", "description" } }` | Validates the selected canonical Class X/Y ID, writes its canonical city/state/country/tier values, and marks `detailsComplete: true` |
+| `POST` | `/youtube-refresh/skip` | `{ "userId" }` | Saves the returning member’s choice to continue with their last stored taste profile rather than refresh YouTube |
 
 #### YouTube: `/api/youtube`
 
@@ -254,10 +255,11 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds and timestamps the current taste profile, refreshes category candidates, and delivers up to five initial matches for a newly onboarded member |
+| `POST` | `/add` | `{ "userId", "otherUserId" }` | Adds an eligible discovered member to the requesting user’s Matches list and returns the calculated score |
 | `GET` | `/:userId/:otherUserId` | None | Calculates the current user-to-user match score for display on a member profile |
 | `GET` | `/:userId` | None | Returns delivered matches, annotating unread and not-yet-started chats; when eligible, delivers one new undiscovered match for the day |
 
-The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
+The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data. A successful new YouTube analysis clears any prior refresh-skip choice.
 
 #### Chat: `/api/chat`
 
@@ -361,7 +363,7 @@ Fields currently written include:
 
 ### `matchDeliveries/{userId_otherUserId}`
 
-Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. The Matches API exposes the other member as `userId` (and the recipient separately as `recipientUserId`); every Matches-tab navigation path also explicitly prefers `otherUserId` for backwards-compatible profile and chat navigation. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
+Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. A member can also explicitly add an eligible profile they discover, which creates a delivery for that requesting member. The Matches API exposes the other member as `userId` (and the recipient separately as `recipientUserId`); every Matches-tab navigation path also explicitly prefers `otherUserId` for backwards-compatible profile and chat navigation. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
 
 ### `chats/{chatId}` and `chats/{chatId}/messages/{messageId}`
 
@@ -450,7 +452,7 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 4. **Synchronize profile data in the frontend.** After onboarding, `AuthContext.setOnboarded()` updates only `onboarded`; it does not update local `youtubeData`, so profile statistics may not reflect the stored backend profile until the next sign-in.
 5. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
 6. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
-7. **Define privacy and retention policy.** Users are sharing sensitive viewing preferences. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
+7. **Define privacy and retention policy.** Member profiles now deliberately share aggregate liked-video counts and category breakdowns, while raw videos, subscriptions, email, and embeddings remain private. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
 8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
 9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
 10. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
@@ -492,3 +494,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.33` (2026-07-17): Applied explicit other-member ID resolution to chat selection and active-chat profile links as well as match-list profile links.
 - `v4.34` (2026-07-17): Restructured Dashboard bottom row: Activities link in bottom-left, empty placeholder in bottom-centre, Algorithm link with heading and description in bottom-right; removed Algorithm link from the welcome card.
 - `v4.35` (2026-07-17): Completed project-context review, covering Murmur's product vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment, and production priorities.
+- `v4.36` (2026-07-17): Added a profile-level Add to matches action for eligible unconnected members, a persisted skip option for the weekly YouTube refresh prompt, and shared aggregate YouTube-analysis counts/category breakdowns on every member profile.
+- `v4.37` (2026-07-17): Renamed the user-facing Activities tab and related page/dashboard labels to Conversations; the established `/activity` route and activities API remain unchanged for compatibility.

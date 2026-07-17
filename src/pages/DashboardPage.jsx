@@ -83,7 +83,7 @@ function DashboardPage() {
         <section className="dashboard-card dashboard-content-card glass">
           <h2>Shared interests, endless gossip</h2>
           <p>Start or join in on a conversation with the people you cherish and on the topic you enjoy discussing.</p>
-          <Link to="/activity" className="dashboard-content-link">Start an Activity →</Link>
+          <Link to="/activity" className="dashboard-content-link">Start a Conversation →</Link>
         </section>
         <section className="dashboard-card glass" />
         <section className="dashboard-card dashboard-content-card glass">

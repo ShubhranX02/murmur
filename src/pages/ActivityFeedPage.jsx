@@ -57,7 +57,7 @@ function ActivityFeedPage() {
   return (
     <div className="activity-page animate-fade-in-up">
       <div className="activity-header">
-        <h1>Activity</h1>
+        <h1>Conversations</h1>
         <button className="btn-primary start-convo-btn" onClick={() => navigate('/activity/create')}>
           <span className="plus-icon">+</span> Start Conversation
         </button>
@@ -70,7 +70,7 @@ function ActivityFeedPage() {
           <div className="activity-error glass">{error}</div>
         ) : activities.length === 0 ? (
           <div className="activity-empty glass">
-            <p>There is no ongoing conversations. Start one!</p>
+            <p>There are no ongoing conversations. Start one!</p>
           </div>
         ) : (
           <div className="activity-grid">

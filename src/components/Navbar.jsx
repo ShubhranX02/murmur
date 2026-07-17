@@ -36,7 +36,7 @@ function Navbar() {
                 to="/activity" 
                 className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
               >
-                Activities
+                Conversations
               </NavLink>
               <NavLink 
                 to="/matches" 

@@ -177,7 +177,7 @@ function ProfilePage() {
                 <label>Age<input type="number" min="13" max="120" value={formDetails.age} onChange={event => updateDetail('age', event.target.value)} required /></label>
                 <label>Gender<select value={formDetails.gender} onChange={event => updateDetail('gender', event.target.value)} required><option value="" disabled>Select one</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></label>
               </div>
-              <label>Description <span>{descriptionWords}/100 words</span><textarea value={formDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="5" required /></label>
+              <label>Description (optional) <span>{descriptionWords}/100 words</span><textarea value={formDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="5" /></label>
               <div className="profile-form-actions">
                 <button type="button" className="btn-secondary" onClick={() => { setFormDetails(toFormDetails(profile.profileDetails)); setIsEditing(false); }}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={isSaving}>{isSaving ? 'Saving…' : 'Save details'}</button>
@@ -190,7 +190,7 @@ function ProfilePage() {
                 <div><dt>Age</dt><dd>{profile.profileDetails.age}</dd></div>
                 <div><dt>Gender</dt><dd>{profile.profileDetails.gender}</dd></div>
               </dl>
-              <p className="profile-description">{profile.profileDetails.description}</p>
+              {profile.profileDetails.description && <p className="profile-description">{profile.profileDetails.description}</p>}
             </div>
           ) : (
             <p className="profile-empty-details">{isOwnProfile ? 'Add your details so your matches can get to know you.' : 'This member has not added profile details yet.'}</p>

@@ -41,9 +41,6 @@ function normalizeProfileDetails(details = {}) {
   if (!PROFILE_GENDERS.has(gender)) {
     throw new Error('Choose Male, Female, or Other.');
   }
-  if (!description) {
-    throw new Error('Write a short description about yourself.');
-  }
   if (descriptionWords.length > 100) {
     throw new Error('Keep your description to 100 words or fewer.');
   }

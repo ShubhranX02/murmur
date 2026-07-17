@@ -357,8 +357,8 @@ function OnboardingPage() {
                 </label>
               </div>
               <label>
-                Description <span>{profileDetails.description.trim() ? profileDetails.description.trim().split(/\s+/).length : 0}/100 words</span>
-                <textarea value={profileDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="4" required />
+                Description (optional) <span>{profileDetails.description.trim() ? profileDetails.description.trim().split(/\s+/).length : 0}/100 words</span>
+                <textarea value={profileDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="4" />
               </label>
               <button type="submit" className="btn-primary" disabled={isSavingDetails}>
                 {isSavingDetails ? 'Saving…' : 'Save and continue'}

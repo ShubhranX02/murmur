@@ -13,10 +13,10 @@ The current user journey is:
 3. On that same screen, they grant read-only YouTube access.
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
-6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and short description before entering the app.
+6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user views matches, opens chats, and can visit a matched member's shareable profile page.
 
-The app currently displays version `v4.16` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.17`, `4.18`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.17` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.18`, `4.19`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -170,7 +170,7 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
 6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
-7. After analysis, the user must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and a required description of at most 100 words. The details are then stored before the completion/match-count screen.
+7. After analysis, the user must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words. The details are then stored before the completion/match-count screen.
 
 ### Standardised Indian locations
 
@@ -322,7 +322,7 @@ Fields currently written include:
     },
     age,                    // Integer, 13–120
     gender,                 // "Male", "Female", or "Other"
-    description             // Required, 100 words maximum
+    description             // Optional, 100 words maximum
   },
   createdAt,
   updatedAt,
@@ -458,3 +458,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 
 - `v4.15` (2026-07-17): Project architecture, APIs, technical stack, deployment model, product vision, and current limitations reviewed and documented as the active project context.
 - `v4.16` (2026-07-17): Completed standardised Indian location selection with a local 2011 Census-based Class X/Y dataset, canonical Firestore location records, and backend ID validation.
+- `v4.17` (2026-07-17): Made the profile description optional while retaining its 100-word limit when supplied.

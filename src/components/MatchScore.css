@@ -10,10 +10,8 @@
 }
 
 .match-score-info-tooltip {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 12px);
-  left: 50%;
+  position: fixed;
+  z-index: 1100;
   width: min(280px, 75vw);
   padding: 12px 14px;
   border: 1px solid var(--glass-border);
@@ -24,18 +22,8 @@
   font-size: 13px;
   font-weight: 400;
   line-height: 1.5;
-  opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -4px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  visibility: hidden;
-}
-
-.match-score-info:hover .match-score-info-tooltip,
-.match-score-info:focus-visible .match-score-info-tooltip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-  visibility: visible;
+  transform: translateX(-50%);
 }
 
 .match-score-info:focus-visible {

@@ -15,7 +15,6 @@ function MatchesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [showUnreadCount, setShowUnreadCount] = useState(true);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -96,9 +95,6 @@ function MatchesPage() {
     return b.score - a.score;
   });
 
-  const unreadCount = activeMatches.filter(match => match.hasUnreadMessages).length;
-  const counterValue = showUnreadCount ? unreadCount : activeMatches.length;
-
   return (
     <div className="matches-page">
       {error && (
@@ -131,15 +127,6 @@ function MatchesPage() {
                     ‹
                   </button>
                 )}
-                <button
-                  type="button"
-                  className="match-badge"
-                  onClick={() => setShowUnreadCount(current => !current)}
-                  aria-label={`Showing ${showUnreadCount ? 'unread chats' : 'total matches'}. Click to switch.`}
-                  title={showUnreadCount ? 'Unread chats — click to show all matches' : 'All matches — click to show unread chats'}
-                >
-                  {counterValue}
-                </button>
               </div>
             </div>
             <div className="matches-list" aria-label="Your matches">

@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.24` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.25`, `4.26`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.25` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.26`, `4.27`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -474,3 +474,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.22` (2026-07-17): Added current match-score display to other-member profiles and standardized the explanatory score tooltip across match lists, chat headers, and profiles.
 - `v4.23` (2026-07-17): Reviewed and confirmed the active project context, including Murmur's product vision, React/Express/Firebase architecture, YouTube ingestion, semantic matching, APIs, deployment model, and production priorities.
 - `v4.24` (2026-07-17): Ensured current match scores display on other members’ profiles and standardized the requested hover/focus explanation across profile, chat-header, and match-list score displays.
+- `v4.25` (2026-07-17): Moved match-score tooltips into a top-level layer so they remain visible above the Matches workspace, and removed the unused red unread/total-count toggle from the Chats sidebar.

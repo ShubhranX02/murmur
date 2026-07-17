@@ -13,10 +13,10 @@ The current user journey is:
 3. On that same screen, they grant read-only YouTube access.
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
-6. The user adds their location, age, gender, and short description before entering the app.
+6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and short description before entering the app.
 7. The user views matches, opens chats, and can visit a matched member's shareable profile page.
 
-The app currently displays version `v4.14` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.15`, `4.16`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.16` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.17`, `4.18`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -43,6 +43,7 @@ The app currently displays version `v4.14` in the top-right of the navigation ba
 ├── src/                         # React client
 │   ├── components/              # Navbar, match cards, chat bubbles, loading UI
 │   ├── config/appVersion.js     # Visible release version
+│   ├── data/indiaXyCities.json  # Canonical eligible Indian locations
 │   ├── contexts/AuthContext.jsx # Client session and API helpers
 │   ├── pages/                   # Landing, onboarding, matches, chat, profile
 │   ├── App.jsx                  # Routes and application shell
@@ -169,7 +170,15 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
 6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
-7. After analysis, the user supplies City, Country, Age (13–120), Gender (Male, Female, or Other), and a required description of at most 100 words. The details are then stored before the completion/match-count screen.
+7. After analysis, the user must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and a required description of at most 100 words. The details are then stored before the completion/match-count screen.
+
+### Standardised Indian locations
+
+Murmur uses the local `src/data/indiaXyCities.json` snapshot for every location selection. It contains 99 eligible 2011 Census urban locations: 8 Class X locations (population of 50 lakh or more) and 91 Class Y locations (5 lakh to below 50 lakh). The source baseline is the Office of the Registrar General & Census Commissioner, India’s [2011 A-04 town and urban-agglomeration table](https://censusindia.gov.in/nada/index.php/catalog/42876) and [Urban Agglomeration Primary Census Abstract](https://censusindia.gov.in/nada/index.php/catalog/45261/study-description).
+
+Each list entry has an app-stable canonical `id`, canonical `city`, `state`, `country: "India"`, and `tier`; selected entries may also be found through legacy-name aliases such as Bangalore. The app sends the selected ID, but the backend treats that ID as authoritative and replaces the client-supplied city/state/country/tier values with the canonical local record before saving. This prevents misspellings, arbitrary locations, and forged display metadata from entering Firestore.
+
+The reusable `IndiaLocationPicker` is used both during onboarding and on a member’s profile-edit screen. Older profiles with free-text locations are preserved for display, but a member must select an eligible canonical location when they next save their details.
 
 Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile also sees a **Message** button that opens that member's conversation in the Matches workspace. Public profiles never return email addresses, embeddings, category distributions, or YouTube viewing data.
 
@@ -224,7 +233,7 @@ Expected successful response:
 | `POST` | `/google` | `{ "credential": "Google ID token" }` | Parses user identity, upserts basic user fields, returns `{ user }` |
 | `POST` | `/youtube-token` | `{ "accessToken", "userId" }` | Stores the token in memory for subsequent YouTube fetches |
 | `GET` | `/profile/:userId` | None | Returns a safe public profile: name, avatar, onboarding state, and profile details only |
-| `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "city", "country" }, "age", "gender", "description" } }` | Validates and saves the current user's profile details; marks `detailsComplete: true` |
+| `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "id" }, "age", "gender", "description" } }` | Validates the selected canonical Class X/Y ID, writes its canonical city/state/country/tier values, and marks `detailsComplete: true` |
 
 #### YouTube: `/api/youtube`
 
@@ -304,7 +313,13 @@ Fields currently written include:
   onboarded,
   detailsComplete,
   profileDetails: {
-    location: { city, country },
+    location: {
+      id,                     // App-stable ID from indiaXyCities.json
+      city,
+      state,
+      country: "India",
+      tier                    // "X" (50 lakh+) or "Y" (5–50 lakh)
+    },
     age,                    // Integer, 13–120
     gender,                 // "Male", "Female", or "Other"
     description             // Required, 100 words maximum
@@ -438,3 +453,8 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - Increment `APP_VERSION` in `src/config/appVersion.js` for every code change, and report the new version number in the handoff.
 - Update `ProjectDetails.md` whenever a change affects the project architecture, APIs, product flow, technical conventions, or release version.
 - Do not commit secrets, Firebase service-account files, or `.env` files.
+
+## Maintenance log
+
+- `v4.15` (2026-07-17): Project architecture, APIs, technical stack, deployment model, product vision, and current limitations reviewed and documented as the active project context.
+- `v4.16` (2026-07-17): Completed standardised Indian location selection with a local 2011 Census-based Class X/Y dataset, canonical Firestore location records, and backend ID validation.

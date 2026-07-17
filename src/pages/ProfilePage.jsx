@@ -3,10 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import CategoryRingChart from '../components/CategoryRingChart';
 import LoadingSpinner from '../components/LoadingSpinner';
+import IndiaLocationPicker from '../components/IndiaLocationPicker';
 import './ProfilePage.css';
 
 const emptyDetails = {
-  location: { city: '', country: '' },
+  location: null,
   age: '',
   gender: '',
   description: ''
@@ -14,10 +15,7 @@ const emptyDetails = {
 
 function toFormDetails(details) {
   return {
-    location: {
-      city: details?.location?.city || '',
-      country: details?.location?.country || ''
-    },
+    location: details?.location?.id ? details.location : null,
     age: details?.age || '',
     gender: details?.gender || '',
     description: details?.description || ''
@@ -86,13 +84,6 @@ function ProfilePage() {
     navigate('/');
   };
 
-  const updateLocation = (field, value) => {
-    setFormDetails(current => ({
-      ...current,
-      location: { ...current.location, [field]: value }
-    }));
-  };
-
   const updateDetail = (field, value) => {
     setFormDetails(current => ({ ...current, [field]: value }));
   };
@@ -102,6 +93,10 @@ function ProfilePage() {
     const wordCount = formDetails.description.trim().split(/\s+/).filter(Boolean).length;
     if (wordCount > 100) {
       setError('Keep your description to 100 words or fewer.');
+      return;
+    }
+    if (!formDetails.location?.id) {
+      setError('Choose your city from the available Class X or Class Y locations.');
       return;
     }
 
@@ -176,8 +171,7 @@ function ProfilePage() {
           {isEditing ? (
             <form className="profile-edit-form" onSubmit={handleSave}>
               <div className="profile-form-row">
-                <label>City<input value={formDetails.location.city} onChange={event => updateLocation('city', event.target.value)} maxLength="80" required /></label>
-                <label>Country<input value={formDetails.location.country} onChange={event => updateLocation('country', event.target.value)} maxLength="80" required /></label>
+                <label>City in India<IndiaLocationPicker location={formDetails.location} onChange={location => updateDetail('location', location)} /></label>
               </div>
               <div className="profile-form-row">
                 <label>Age<input type="number" min="13" max="120" value={formDetails.age} onChange={event => updateDetail('age', event.target.value)} required /></label>
@@ -192,7 +186,7 @@ function ProfilePage() {
           ) : profile.profileDetails ? (
             <div className="profile-details-content">
               <dl className="profile-facts">
-                <div><dt>Location</dt><dd>{location?.city}, {location?.country}</dd></div>
+                <div><dt>Location</dt><dd>{[location?.city, location?.state, location?.country].filter(Boolean).join(', ')}</dd></div>
                 <div><dt>Age</dt><dd>{profile.profileDetails.age}</dd></div>
                 <div><dt>Gender</dt><dd>{profile.profileDetails.gender}</dd></div>
               </dl>

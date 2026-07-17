@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db } = require('../config/firebase');
+const indiaXyCities = require('../../src/data/indiaXyCities.json');
 
 // Simple in-memory token store for development
 // In production, encrypt this and store in a proper database linked to the session
@@ -25,15 +26,14 @@ function getPublicProfile(userId, data) {
 }
 
 function normalizeProfileDetails(details = {}) {
-  const city = String(details.location?.city || '').trim();
-  const country = String(details.location?.country || '').trim();
+  const location = indiaXyCities.find(item => item.id === details.location?.id);
   const age = Number(details.age);
   const gender = String(details.gender || '').trim();
   const description = String(details.description || '').trim();
   const descriptionWords = description ? description.split(/\s+/).filter(Boolean) : [];
 
-  if (!city || city.length > 80 || !country || country.length > 80) {
-    throw new Error('Enter a valid city and country.');
+  if (!location) {
+    throw new Error('Choose a city from the available Class X or Class Y locations.');
   }
   if (!Number.isInteger(age) || age < 13 || age > 120) {
     throw new Error('Enter an age between 13 and 120.');
@@ -49,7 +49,13 @@ function normalizeProfileDetails(details = {}) {
   }
 
   return {
-    location: { city, country },
+    location: {
+      id: location.id,
+      city: location.city,
+      state: location.state,
+      country: location.country,
+      tier: location.tier
+    },
     age,
     gender,
     description

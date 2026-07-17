@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
+import IndiaLocationPicker from '../components/IndiaLocationPicker';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
@@ -17,7 +18,7 @@ function OnboardingPage() {
   const [error, setError] = useState(null);
   const [googleClientId, setGoogleClientId] = useState(import.meta.env.VITE_GOOGLE_CLIENT_ID || null);
   const [profileDetails, setProfileDetails] = useState({
-    location: { city: '', country: '' },
+    location: null,
     age: '',
     gender: '',
     description: ''
@@ -35,10 +36,7 @@ function OnboardingPage() {
 
     if (user.profileDetails) {
       setProfileDetails({
-        location: {
-          city: user.profileDetails.location?.city || '',
-          country: user.profileDetails.location?.country || ''
-        },
+        location: user.profileDetails.location?.id ? user.profileDetails.location : null,
         age: user.profileDetails.age || '',
         gender: user.profileDetails.gender || '',
         description: user.profileDetails.description || ''
@@ -215,19 +213,16 @@ function OnboardingPage() {
     setProfileDetails(current => ({ ...current, [field]: value }));
   };
 
-  const updateLocation = (field, value) => {
-    setProfileDetails(current => ({
-      ...current,
-      location: { ...current.location, [field]: value }
-    }));
-  };
-
   const handleSaveDetails = async event => {
     event.preventDefault();
     const wordCount = profileDetails.description.trim().split(/\s+/).filter(Boolean).length;
 
     if (wordCount > 100) {
       setError('Keep your description to 100 words or fewer.');
+      return;
+    }
+    if (!profileDetails.location?.id) {
+      setError('Choose your city from the available Class X or Class Y locations.');
       return;
     }
 
@@ -342,16 +337,10 @@ function OnboardingPage() {
             <p className="subtitle">This information appears on your Murmur profile.</p>
             {error && <div className="error-message">{error}</div>}
             <form className="profile-details-form" onSubmit={handleSaveDetails}>
-              <div className="details-row">
-                <label>
-                  City
-                  <input value={profileDetails.location.city} onChange={event => updateLocation('city', event.target.value)} maxLength="80" required />
-                </label>
-                <label>
-                  Country
-                  <input value={profileDetails.location.country} onChange={event => updateLocation('country', event.target.value)} maxLength="80" required />
-                </label>
-              </div>
+              <label>
+                City in India
+                <IndiaLocationPicker location={profileDetails.location} onChange={location => updateDetail('location', location)} />
+              </label>
               <div className="details-row">
                 <label>
                   Age

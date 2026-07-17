@@ -24,6 +24,7 @@ function OnboardingPage() {
     description: ''
   });
   const [isSavingDetails, setIsSavingDetails] = useState(false);
+  const [pendingYoutubeData, setPendingYoutubeData] = useState(null);
 
   useEffect(() => {
     if (isOnboarded && user?.detailsComplete) {
@@ -43,8 +44,8 @@ function OnboardingPage() {
       });
     }
 
-    // Existing users need only add their details; they should not reconnect YouTube.
-    if (user.onboarded && !user.detailsComplete) {
+    // A returning user with current YouTube data can complete legacy profile details.
+    if (user.onboarded && !user.detailsComplete && !user.requiresYouTubeRefresh) {
       setStep(2);
     }
   }, [user]);
@@ -149,7 +150,37 @@ function OnboardingPage() {
     tokenClient.requestAccessToken();
   };
 
-  const startAnalysis = async (accessToken) => {
+  const computeMatches = async (youtubeData) => {
+    setAnalysisStage(2);
+    const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        likedVideos: youtubeData.likedVideos,
+        subscriptions: youtubeData.subscriptions
+      })
+    });
+
+    if (!matchRes.ok) {
+      const errorData = await matchRes.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to compute matches');
+    }
+
+    const matchData = await matchRes.json();
+    setAnalysisStage(3);
+    setMatchCount(matchData.matches?.length || 0);
+    setTimeout(() => {
+      if (matchData.profileData) {
+        updateUser({ ...matchData.profileData, onboarded: true, requiresYouTubeRefresh: false });
+      }
+      setPendingYoutubeData(null);
+      setStep(3);
+      setIsAnalyzing(false);
+    }, 1000);
+  };
+
+  const startAnalysis = async () => {
     setIsAnalyzing(true);
     setAnalysisStage(1);
     
@@ -172,35 +203,15 @@ function OnboardingPage() {
         subs: fetchData.stats.subscriptionCount
       });
       
-      setAnalysisStage(2);
-      
-      // 2. Compute Matches
-      const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          likedVideos: fetchData.likedVideos,
-          subscriptions: fetchData.subscriptions
-        })
-      });
-      
-      if (!matchRes.ok) {
-        const errorData = await matchRes.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to compute matches');
-      }
-      const matchData = await matchRes.json();
-      
-      setAnalysisStage(3);
-      setMatchCount(matchData.matches?.length || 0);
-      
-      setTimeout(() => {
-        if (matchData.profileData) {
-          updateUser({ ...matchData.profileData, onboarded: true });
-        }
-        setStep(2);
+      if (user.detailsComplete) {
+        await computeMatches(fetchData);
+      } else {
+        // Location and age are matching priorities, so they are collected
+        // before a new member's first candidate calculation.
+        setPendingYoutubeData(fetchData);
         setIsAnalyzing(false);
-      }, 1500);
+        setStep(2);
+      }
 
     } catch (err) {
       setError(err.message || 'An error occurred during analysis');
@@ -237,12 +248,14 @@ function OnboardingPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not save your profile details.');
 
-      updateUser({
-        profileDetails: data.profile.profileDetails,
-        detailsComplete: true,
-        onboarded: true
-      });
-      setStep(3);
+      updateUser({ profileDetails: data.profile.profileDetails, detailsComplete: true });
+      if (pendingYoutubeData) {
+        setStep(1);
+        setIsAnalyzing(true);
+        await computeMatches(pendingYoutubeData);
+      } else {
+        setStep(3);
+      }
     } catch (err) {
       setError(err.message || 'Could not save your profile details.');
     } finally {
@@ -267,7 +280,7 @@ function OnboardingPage() {
               <img src={user?.photoURL || '/default-avatar.png'} alt="Profile" />
             </div>
             <h2>Welcome, {user?.displayName?.split(' ')[0]}!</h2>
-            <p className="subtitle">Connect YouTube to find people who share your taste.</p>
+            <p className="subtitle">{user.onboarded ? 'Reconnect YouTube to get your latest data and refresh your matches.' : 'Connect YouTube to find people who share your taste.'}</p>
             
             <div className="info-cards">
               <div className="info-card">
@@ -289,7 +302,7 @@ function OnboardingPage() {
             {error && <div className="error-message">{error}</div>}
 
             <button className="btn-primary btn-youtube" onClick={handleConnectYouTube}>
-              <span className="icon-yt">▶</span> Connect YouTube
+              <span className="icon-yt">▶</span> {user.onboarded ? 'Reconnect YouTube for latest data' : 'Connect YouTube'}
             </button>
           </div>
         )}

@@ -1,20 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { db, firebaseInitError } = require('../config/firebase');
-const { batchEmbed, createUserEmbedding, computeMatchScore } = require('../services/embedding');
+const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity } = require('../services/embedding');
 const { buildVideoText } = require('../services/youtube');
 
 const MAX_PROFILE_VIDEOS = 50;
-const MAX_MATCHES = 10;
+const CATEGORY_CANDIDATE_LIMIT = 25;
+const INITIAL_MATCH_LIMIT = 5;
+const MATCH_DELIVERIES = 'matchDeliveries';
 
 function firestoreUnavailable(res) {
-  const setupHint = firebaseInitError
-    ? ' Firebase Admin credentials are missing or invalid.'
-    : '';
-
-  return res.status(503).json({
-    error: `Firestore is unavailable.${setupHint} Add the Firebase service-account credential to the Render backend and make sure Firestore Database is created.`
-  });
+  const setupHint = firebaseInitError ? ' Firebase Admin credentials are missing or invalid.' : '';
+  return res.status(503).json({ error: `Firestore is unavailable.${setupHint} Add the Firebase service-account credential to the Render backend and make sure Firestore Database is created.` });
 }
 
 async function runFirestore(operation) {
@@ -32,57 +29,72 @@ function getMatchId(userId, otherUserId) {
   return [userId, otherUserId].sort().join('_');
 }
 
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function categoryScore(userA, userB) {
+  const categoriesA = userA.categoryDistribution || {};
+  const categoriesB = userB.categoryDistribution || {};
+  const categoryIds = new Set([...Object.keys(categoriesA), ...Object.keys(categoriesB)]);
+  const vectorA = [];
+  const vectorB = [];
+  categoryIds.forEach(id => {
+    vectorA.push(categoriesA[id] || 0);
+    vectorB.push(categoriesB[id] || 0);
+  });
+  return Math.round(Math.max(0, Math.min(1, cosineSimilarity(vectorA, vectorB))) * 100);
+}
+
+function matchPriority(user, candidate) {
+  const sameLocation = Boolean(
+    user.profileDetails?.location?.id &&
+    user.profileDetails.location.id === candidate.profileDetails?.location?.id
+  );
+  const ageDifference = Math.abs(Number(user.profileDetails?.age) - Number(candidate.profileDetails?.age));
+  const withinPreferredAgeRange = Number.isFinite(ageDifference) && ageDifference <= 5;
+
+  // Location is the first gate, then the preferred +/- five-year age range.
+  return (sameLocation ? 0 : 2) + (withinPreferredAgeRange ? 0 : 1);
+}
+
+function isEligibleProfile(profile) {
+  return Boolean(profile?.onboarded && profile?.detailsComplete && Array.isArray(profile.embedding) && profile.embedding.length);
+}
+
 async function findTopMatches(userId, userProfile) {
-  const usersSnapshot = await runFirestore(() => (
-    db.collection('users').where('onboarded', '==', true).get()
-  ));
-  const matches = [];
+  const usersSnapshot = await runFirestore(() => db.collection('users').where('onboarded', '==', true).get());
+  const candidates = [];
 
   usersSnapshot.forEach(doc => {
-    const otherUserId = doc.id;
-    if (otherUserId === userId) return;
-
+    if (doc.id === userId) return;
     const otherUser = doc.data();
-    const matchResult = computeMatchScore(userProfile, otherUser);
+    if (!isEligibleProfile(otherUser)) return;
 
-    matches.push({
-      matchId: getMatchId(userId, otherUserId),
-      userId: otherUserId,
-      displayName: otherUser.displayName || 'Murmur member',
-      photoURL: otherUser.photoURL || null,
-      ...matchResult
+    candidates.push({
+      userId: doc.id,
+      profile: otherUser,
+      priority: matchPriority(userProfile, otherUser),
+      categoryScore: categoryScore(userProfile, otherUser)
     });
   });
 
-  const topMatches = matches.sort((a, b) => b.score - a.score).slice(0, MAX_MATCHES);
-  return topMatches.sort((a, b) => a.score - b.score);
-}
+  // Category similarity is deliberately the inexpensive first pass. Only the
+  // top 25 location/age-prioritised candidates receive vector scoring.
+  const shortlisted = candidates
+    .sort((a, b) => a.priority - b.priority || b.categoryScore - a.categoryScore)
+    .slice(0, CATEGORY_CANDIDATE_LIMIT);
 
-async function getUnreadChatIds(userId) {
-  const chatsSnapshot = await runFirestore(() => (
-    db.collection('chats').where('users', 'array-contains', userId).get()
-  ));
-
-  const unreadChatIds = await Promise.all(chatsSnapshot.docs.map(async doc => {
-    const chat = doc.data();
-    const readBy = chat.readBy || [];
-    let lastSenderId = chat.lastSenderId;
-
-    // Older chats predate lastSenderId. Read their latest message so those
-    // conversations can still receive an unread indicator.
-    if (!lastSenderId) {
-      const latestMessages = await runFirestore(() => (
-        doc.ref.collection('messages').orderBy('createdAt', 'desc').limit(1).get()
-      ));
-      lastSenderId = latestMessages.docs[0]?.data().senderId;
-    }
-
-    return lastSenderId && lastSenderId !== userId && !readBy.includes(userId)
-      ? doc.id
-      : null;
-  }));
-
-  return new Set(unreadChatIds.filter(Boolean));
+  return shortlisted
+    .map(candidate => ({
+      matchId: getMatchId(userId, candidate.userId),
+      userId: candidate.userId,
+      displayName: candidate.profile.displayName || 'Murmur member',
+      photoURL: candidate.profile.photoURL || null,
+      priority: candidate.priority,
+      ...computeMatchScore(userProfile, candidate.profile)
+    }))
+    .sort((a, b) => a.priority - b.priority || b.score - a.score);
 }
 
 async function saveMatches(userId, matches) {
@@ -92,159 +104,185 @@ async function saveMatches(userId, matches) {
       score: match.score,
       embeddingScore: match.embeddingScore,
       categoryScore: match.categoryScore,
-      createdAt: new Date()
-    })
+      updatedAt: new Date()
+    }, { merge: true })
   ))));
+}
+
+function deliveryId(userId, otherUserId) {
+  return `${userId}_${otherUserId}`;
+}
+
+async function getDeliveries(userId) {
+  const snapshot = await runFirestore(() => db.collection(MATCH_DELIVERIES).where('userId', '==', userId).get());
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+}
+
+async function deliverMatches(userId, matches, { initial = false } = {}) {
+  const deliveredAt = new Date();
+  const deliveredDate = todayKey();
+  await runFirestore(() => Promise.all(matches.map(match => (
+    db.collection(MATCH_DELIVERIES).doc(deliveryId(userId, match.userId)).set({
+      userId,
+      otherUserId: match.userId,
+      matchId: match.matchId,
+      displayName: match.displayName,
+      photoURL: match.photoURL,
+      score: match.score,
+      embeddingScore: match.embeddingScore,
+      categoryScore: match.categoryScore,
+      deliveredAt,
+      deliveredDate,
+      initial
+    }, { merge: true })
+  ))));
+}
+
+async function ensureDailyMatch(userId, userProfile) {
+  if (userProfile.lastMatchDeliveryDate === todayKey()) return;
+
+  const [candidates, deliveries] = await Promise.all([
+    findTopMatches(userId, userProfile),
+    getDeliveries(userId)
+  ]);
+  const deliveredUserIds = new Set(deliveries.map(delivery => delivery.otherUserId));
+  const nextMatch = candidates.find(candidate => !deliveredUserIds.has(candidate.userId));
+  if (!nextMatch) return;
+
+  await saveMatches(userId, [nextMatch]);
+  await deliverMatches(userId, [nextMatch]);
+  await runFirestore(() => db.collection('users').doc(userId).set({ lastMatchDeliveryDate: todayKey() }, { merge: true }));
+}
+
+async function ensureInitialMatches(userId, userProfile) {
+  if (userProfile.initialMatchesDelivered) return;
+  const candidates = await findTopMatches(userId, userProfile);
+  const initialMatches = candidates.slice(0, INITIAL_MATCH_LIMIT);
+  await saveMatches(userId, initialMatches);
+  await deliverMatches(userId, initialMatches, { initial: true });
+  await runFirestore(() => db.collection('users').doc(userId).set({ initialMatchesDelivered: true, lastMatchDeliveryDate: todayKey() }, { merge: true }));
+}
+
+async function getChatStatuses(userId) {
+  const snapshot = await runFirestore(() => db.collection('chats').where('users', 'array-contains', userId).get());
+  const statuses = new Map();
+
+  snapshot.forEach(doc => {
+    const chat = doc.data();
+    const readBy = chat.readBy || [];
+    statuses.set(doc.id, {
+      hasStartedConversation: Boolean(chat.lastMessage),
+      hasUnreadMessages: Boolean(chat.lastSenderId && chat.lastSenderId !== userId && !readBy.includes(userId))
+    });
+  });
+
+  return statuses;
+}
+
+async function listDeliveredMatches(userId) {
+  const [deliveries, chatStatuses] = await Promise.all([getDeliveries(userId), getChatStatuses(userId)]);
+  const today = todayKey();
+  return deliveries
+    .map(delivery => ({
+      ...delivery,
+      hasUnreadMessages: chatStatuses.get(delivery.matchId)?.hasUnreadMessages || false,
+      hasStartedConversation: chatStatuses.get(delivery.matchId)?.hasStartedConversation || false,
+      deliveredToday: delivery.deliveredDate === today
+    }))
+    .sort((a, b) => (b.deliveredAt?.toDate?.() || new Date(0)) - (a.deliveredAt?.toDate?.() || new Date(0)));
 }
 
 router.post('/compute', async (req, res) => {
   try {
     const { userId, likedVideos, subscriptions } = req.body;
-    
-    if (!userId || !likedVideos || !subscriptions) {
-      return res.status(400).json({ error: 'Missing required data' });
-    }
+    if (!userId || !likedVideos || !subscriptions) return res.status(400).json({ error: 'Missing required data' });
+    if (!db) return firestoreUnavailable(res);
 
-    if (!db) {
-      return firestoreUnavailable(res);
-    }
-
-    console.log(`Computing profile for user ${userId}...`);
-
-    // 1. Generate text for the 50 most recent liked videos returned by
-    // YouTube. This keeps the profile current and the Render request fast.
+    const userRef = db.collection('users').doc(userId);
+    const existingUserDoc = await runFirestore(() => userRef.get());
+    const existingUser = existingUserDoc.exists ? existingUserDoc.data() : {};
     const profileVideos = likedVideos.slice(0, MAX_PROFILE_VIDEOS);
-    const videoTexts = profileVideos.map(buildVideoText);
-    
-    // 2. Generate embeddings for videos
-    console.log(`Generating embeddings for ${videoTexts.length} of ${likedVideos.length} liked videos...`);
-    const videoEmbeddings = await batchEmbed(videoTexts);
-    
-    // 3. Create user embedding
-    const userEmbedding = createUserEmbedding(videoEmbeddings);
-
-    // 4. Compute category distribution
+    const videoEmbeddings = await batchEmbed(profileVideos.map(buildVideoText));
     const categoryDistribution = {};
-    let totalCategories = 0;
-    likedVideos.forEach(v => {
-      const catId = v.snippet?.categoryId;
-      if (catId) {
-        categoryDistribution[catId] = (categoryDistribution[catId] || 0) + 1;
-        totalCategories++;
-      }
+    let categoryCount = 0;
+    likedVideos.forEach(video => {
+      const categoryId = video.snippet?.categoryId;
+      if (!categoryId) return;
+      categoryDistribution[categoryId] = (categoryDistribution[categoryId] || 0) + 1;
+      categoryCount++;
     });
-    // Normalize
-    if (totalCategories > 0) {
-      Object.keys(categoryDistribution).forEach(k => {
-        categoryDistribution[k] = categoryDistribution[k] / totalCategories;
-      });
-    }
+    if (categoryCount) Object.keys(categoryDistribution).forEach(id => { categoryDistribution[id] /= categoryCount; });
 
-    // Prepare profile data
     const profileData = {
-      embedding: userEmbedding,
+      embedding: createUserEmbedding(videoEmbeddings),
       categoryDistribution,
       onboarded: true,
       youtubeData: {
         likedVideoCount: likedVideos.length,
         subscriptionCount: subscriptions.length,
-        topCategories: Object.keys(categoryDistribution)
-          .sort((a, b) => categoryDistribution[b] - categoryDistribution[a])
-          .slice(0, 5),
-        // Save a stripped down list of up to 100 liked videos for the Activity Publisher
-        savedLikedVideos: likedVideos.slice(0, 100).map(v => ({
-          id: v.id,
-          title: v.snippet?.title || 'Unknown Title',
-          channelTitle: v.snippet?.channelTitle || 'Unknown Creator',
-          thumbnailUrl: v.snippet?.thumbnails?.medium?.url || v.snippet?.thumbnails?.default?.url || null
+        topCategories: Object.keys(categoryDistribution).sort((a, b) => categoryDistribution[b] - categoryDistribution[a]).slice(0, 5),
+        lastUpdatedAt: new Date(),
+        savedLikedVideos: likedVideos.slice(0, 100).map(video => ({
+          id: video.id,
+          title: video.snippet?.title || 'Unknown Title',
+          channelTitle: video.snippet?.channelTitle || 'Unknown Creator',
+          thumbnailUrl: video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url || null
         }))
-      }
+      },
+      updatedAt: new Date()
     };
+    await runFirestore(() => userRef.set(profileData, { merge: true }));
 
-    // 6. Store the profile before matching so the user is eligible for every
-    // later user's top-ten results.
-    await runFirestore(() => (
-      db.collection('users').doc(userId).set(profileData, { merge: true })
-    ));
+    const completeProfile = { ...existingUser, ...profileData };
+    const candidates = isEligibleProfile(completeProfile) ? await findTopMatches(userId, completeProfile) : [];
+    await saveMatches(userId, candidates);
 
-    console.log('Finding top matches...');
-    const matches = await findTopMatches(userId, profileData);
-    await saveMatches(userId, matches);
-    console.log(`Generated ${matches.length} top matches`);
+    let deliveredMatches = [];
+    if (!existingUser.initialMatchesDelivered) {
+      deliveredMatches = candidates.slice(0, INITIAL_MATCH_LIMIT);
+      await deliverMatches(userId, deliveredMatches, { initial: true });
+      await runFirestore(() => userRef.set({ initialMatchesDelivered: true, lastMatchDeliveryDate: todayKey() }, { merge: true }));
+    }
 
-    res.json({ matches, profileData });
-
+    res.json({ matches: deliveredMatches, profileData, candidateCount: candidates.length });
   } catch (error) {
     console.error('Error computing matches:', error);
-    res.status(error.status || 500).json({
-      error: error.status ? error.message : 'Failed to compute matches. Check the Render logs for the underlying error.'
-    });
+    res.status(error.status || 500).json({ error: error.status ? error.message : 'Failed to compute matches. Check the Render logs for the underlying error.' });
   }
 });
 
 router.get('/:userId/:otherUserId', async (req, res) => {
   try {
     const { userId, otherUserId } = req.params;
-
-    if (!db) {
-      return firestoreUnavailable(res);
-    }
-
-    const [userDoc, otherUserDoc] = await Promise.all([
-      runFirestore(() => db.collection('users').doc(userId).get()),
-      runFirestore(() => db.collection('users').doc(otherUserId).get())
-    ]);
-
-    if (!userDoc.exists || !otherUserDoc.exists || !userDoc.data().onboarded || !otherUserDoc.data().onboarded) {
+    if (!db) return firestoreUnavailable(res);
+    const [userDoc, otherUserDoc] = await Promise.all([db.collection('users').doc(userId).get(), db.collection('users').doc(otherUserId).get()]);
+    if (!userDoc.exists || !otherUserDoc.exists || !isEligibleProfile(userDoc.data()) || !isEligibleProfile(otherUserDoc.data())) {
       return res.status(404).json({ error: 'A match score is not available for this member.' });
     }
-
-    return res.json({
-      match: {
-        matchId: getMatchId(userId, otherUserId),
-        userId: otherUserId,
-        ...computeMatchScore(userDoc.data(), otherUserDoc.data())
-      }
-    });
+    return res.json({ match: { matchId: getMatchId(userId, otherUserId), userId: otherUserId, ...computeMatchScore(userDoc.data(), otherUserDoc.data()) } });
   } catch (error) {
     console.error('Error fetching match score:', error);
-    return res.status(error.status || 500).json({
-      error: error.status ? error.message : 'Could not calculate this match score.'
-    });
+    return res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not calculate this match score.' });
   }
 });
 
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
-    
-    if (!db) {
-      return firestoreUnavailable(res);
-    }
-
+    if (!db) return firestoreUnavailable(res);
     const userDoc = await runFirestore(() => db.collection('users').doc(userId).get());
-    if (!userDoc.exists || !userDoc.data().onboarded) {
-      return res.json({ matches: [] });
+    if (!userDoc.exists || !isEligibleProfile(userDoc.data())) return res.json({ matches: [], totalMatches: 0 });
+
+    if (!userDoc.data().initialMatchesDelivered) {
+      await ensureInitialMatches(userId, userDoc.data());
+    } else {
+      await ensureDailyMatch(userId, userDoc.data());
     }
-
-    // Calculate from current profiles instead of relying on stale or missing
-    // match documents. This also lets previously onboarded users see new users.
-    const [matches, unreadChatIds] = await Promise.all([
-      findTopMatches(userId, userDoc.data()),
-      getUnreadChatIds(userId)
-    ]);
-    res.json({
-      matches: matches.map(match => ({
-        ...match,
-        hasUnreadMessages: unreadChatIds.has(match.matchId)
-      }))
-    });
-
+    const matches = await listDeliveredMatches(userId);
+    res.json({ matches, totalMatches: matches.length });
   } catch (error) {
     console.error('Error fetching matches:', error);
-    res.status(error.status || 500).json({
-      error: error.status ? error.message : 'Failed to fetch matches. Check the Render logs for the underlying error.'
-    });
+    res.status(error.status || 500).json({ error: error.status ? error.message : 'Failed to fetch matches. Check the Render logs for the underlying error.' });
   }
 });
 

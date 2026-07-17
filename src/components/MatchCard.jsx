@@ -49,7 +49,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
   
   return (
     <article
-      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''} ${isSelected ? 'is-selected' : ''}`}
+      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''} ${!match.hasStartedConversation ? 'not-yet-talked' : ''} ${isSelected ? 'is-selected' : ''}`}
       style={{ animationDelay: delay }}
       role="button"
       tabIndex="0"

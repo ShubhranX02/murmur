@@ -8,6 +8,25 @@ const indiaXyCities = require('../../src/data/indiaXyCities.json');
 const tokenStore = new Map();
 
 const PROFILE_GENDERS = new Set(['Male', 'Female', 'Other']);
+const YOUTUBE_DATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function toDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === 'function') return value.toDate();
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function needsYoutubeRefresh(user) {
+  const lastUpdatedAt = toDate(user?.youtubeData?.lastUpdatedAt);
+  return !lastUpdatedAt || Date.now() - lastUpdatedAt.getTime() >= YOUTUBE_DATA_MAX_AGE_MS;
+}
+
+function serialiseYoutubeData(youtubeData) {
+  if (!youtubeData) return youtubeData;
+  const lastUpdatedAt = toDate(youtubeData.lastUpdatedAt);
+  return { ...youtubeData, lastUpdatedAt: lastUpdatedAt?.toISOString() || null };
+}
 
 function profileUnavailable(res) {
   return res.status(503).json({
@@ -123,6 +142,8 @@ router.post('/google', async (req, res) => {
           userObj = { ...docData, ...userObj }; // merge Firestore data
           userObj.onboarded = docData.onboarded || false;
           userObj.detailsComplete = docData.detailsComplete || false;
+          userObj.youtubeData = serialiseYoutubeData(docData.youtubeData);
+          userObj.requiresYouTubeRefresh = needsYoutubeRefresh(docData);
         }
 
         await userRef.set(updateData, { merge: true });
@@ -130,6 +151,9 @@ router.post('/google', async (req, res) => {
     } catch (dbError) {
       console.warn('Firestore not configured or failed, proceeding with in-memory user', dbError);
     }
+
+    userObj.requiresYouTubeRefresh = userObj.requiresYouTubeRefresh ?? needsYoutubeRefresh(userObj);
+    userObj.youtubeData = serialiseYoutubeData(userObj.youtubeData);
 
     res.json({ user: userObj });
   } catch (error) {

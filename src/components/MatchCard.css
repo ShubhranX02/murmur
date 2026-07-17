@@ -30,6 +30,15 @@
   background: rgba(255, 82, 82, 0.05);
 }
 
+.match-list-item.not-yet-talked {
+  background: rgba(255, 202, 64, 0.12);
+  border-left: 3px solid #ffca40;
+}
+
+.match-list-item.not-yet-talked:hover {
+  background: rgba(255, 202, 64, 0.2);
+}
+
 .match-list-item.is-selected {
   background: rgba(229, 57, 53, 0.15);
 }

@@ -1,6 +1,14 @@
 import { createContext, useState, useEffect, useContext } from 'react';
 
 const AuthContext = createContext();
+const YOUTUBE_DATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+
+function hasFreshYouTubeData(user) {
+  const lastUpdatedAt = user?.youtubeData?.lastUpdatedAt;
+  if (!lastUpdatedAt) return false;
+  const timestamp = new Date(lastUpdatedAt).getTime();
+  return Number.isFinite(timestamp) && Date.now() - timestamp < YOUTUBE_DATA_MAX_AGE_MS;
+}
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -10,14 +18,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!user;
-  const isOnboarded = user?.onboarded || false;
+  const isOnboarded = Boolean(user?.onboarded && !user?.requiresYouTubeRefresh && hasFreshYouTubeData(user));
 
   useEffect(() => {
     // Restore session from localStorage
     const savedUser = localStorage.getItem('murmur_user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const savedProfile = JSON.parse(savedUser);
+        // A local session must never bypass the weekly YouTube-data refresh.
+        if (hasFreshYouTubeData(savedProfile) && !savedProfile.requiresYouTubeRefresh) {
+          setUser(savedProfile);
+        } else {
+          localStorage.removeItem('murmur_user');
+        }
       } catch (e) {
         console.error('Failed to parse saved user', e);
       }

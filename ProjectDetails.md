@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.27` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.28`, `4.29`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.28` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.29`, `4.30`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -147,7 +147,7 @@ Routes are declared in `src/App.jsx`:
 | `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
-| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its top-left card welcomes the member and links to The Algorithm, while the top-right card previews and links to their profile |
+| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its top-left card welcomes the member, top-centre card summarises delivered matches and links to Chats, and top-right card previews and links to their profile |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
 | `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
@@ -168,12 +168,13 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 `OnboardingPage.jsx` is intentionally structured as a single flow:
 
 1. If there is no user, it renders the Google Identity Services sign-in button.
-2. Returning users whose Firestore profile is marked `onboarded` and has completed their details are sent directly to Matches after sign-in. Older accounts without profile details are sent directly to the details form, not asked to reconnect YouTube.
+2. Murmur treats YouTube data as current for seven days. On local-session restoration, expired or missing YouTube data clears the session and requires a new Google sign-in. On sign-in, the backend also marks a profile with missing or week-old data as requiring refresh; those members are sent to onboarding to reconnect YouTube before entering the app.
 3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
-6. It calls the YouTube fetch endpoint, then the matching-compute endpoint.
-7. After analysis, the user must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words. The details are then stored before the completion/match-count screen.
+6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data**; the Activity page also offers a manual **Refresh YouTube data** action beside Start Conversation.
+7. A new member must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words before their first match calculation. This lets location and age influence initial recommendations.
+8. The server then builds the taste profile, delivers up to five initial matches, and shows the completion/match-count screen.
 8. Completing onboarding, visiting the landing page while already fully onboarded, or signing in as a fully onboarded user takes the member to `/dashboard`.
 
 ### Standardised Indian locations
@@ -252,9 +253,9 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds profile, saves it, calculates matches, returns them |
+| `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds and timestamps the current taste profile, refreshes category candidates, and delivers up to five initial matches for a newly onboarded member |
 | `GET` | `/:userId/:otherUserId` | None | Calculates the current user-to-user match score for display on a member profile |
-| `GET` | `/:userId` | None | Calculates and returns the user’s current top 10 matches, ordered by ascending percentage and annotated with unread-chat status |
+| `GET` | `/:userId` | None | Returns delivered matches, annotating unread and not-yet-started chats; when eligible, delivers one new undiscovered match for the day |
 
 The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
 
@@ -294,7 +295,7 @@ The category mapping is kept in `CATEGORY_MAP` in that same file.
 
 The batching and 50-video profile bound are important. Render’s CPU and cold starts made the former per-video implementation slow enough for users to appear stuck at the “Computing AI taste profile” stage.
 
-### Match formula
+### Match formula and delivery
 
 `computeMatchScore(userA, userB)` combines two signals:
 
@@ -303,7 +304,9 @@ The batching and 50-video profile bound are important. Render’s CPU and cold s
 | Content vibe | Cosine similarity of user embeddings | 60% |
 | Categories | Cosine similarity of normalized category distributions | 40% |
 
-The final score is a direct weighted average of these percentages. There is no minimum percentage threshold: every onboarded user can see up to their 10 highest-ranked eligible users.
+The final score is a direct weighted average of these percentages. Candidate selection happens before this score is calculated: Murmur orders eligible members by same canonical location first, then members within a preferred age range of +/- 5 years, and uses category cosine similarity as a low-cost first pass. Only the top 25 priority/category candidates receive embedding/vector scoring.
+
+After first onboarding, up to five of those ranked candidates are delivered as the member’s initial matches. Thereafter, the first eligible visit each new UTC day delivers one previously undiscovered candidate if one is available. This is intentionally delivery-based rather than exposing an unlimited recalculated list, to encourage more meaningful conversations.
 
 ---
 
@@ -356,6 +359,10 @@ Fields currently written include:
 }
 ```
 
+### `matchDeliveries/{userId_otherUserId}`
+
+Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
+
 ### `chats/{chatId}` and `chats/{chatId}/messages/{messageId}`
 
 The backend writes:
@@ -378,7 +385,7 @@ The backend writes:
 }
 ```
 
-Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. The Matches page presents the match list and the active conversation in one desktop-style workspace; before a match is selected, its chat panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
+Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Delivered matches with no sent chat message are additionally highlighted in yellow. The Matches page presents the match list and the active conversation in one desktop-style workspace; before a match is selected, its chat panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
 
 ---
 
@@ -445,7 +452,7 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 6. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
 7. **Define privacy and retention policy.** Users are sharing sensitive viewing preferences. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
 8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
-9. **Scale matching.** Current matching loads every onboarded user and computes scores in one request. This will not scale. Use vector search/ANN retrieval and queued jobs to produce candidates efficiently.
+9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
 10. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
 
 ---
@@ -477,3 +484,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.25` (2026-07-17): Moved match-score tooltips into a top-level layer so they remain visible above the Matches workspace, and removed the unused red unread/total-count toggle from the Chats sidebar.
 - `v4.26` (2026-07-17): Increased the Dashboard widget height and replaced the top-right placeholder with a clickable preview of the signed-in member’s profile.
 - `v4.27` (2026-07-17): Increased desktop and mobile navigation-link spacing by 25%.
+- `v4.28` (2026-07-17): Added seven-day YouTube-data freshness enforcement and manual refresh, location/age-prioritised category-first matching, five initial plus daily delivered matches, Dashboard match details, and yellow highlights for unstarted conversations.

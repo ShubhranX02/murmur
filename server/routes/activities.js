@@ -36,20 +36,6 @@ async function getMatchUserIds(userId) {
   return matchIds;
 }
 
-function isLiveAndJoinable(activity, userId, matchIds) {
-  const expiresAt = toDate(activity.expiresAt);
-  const participants = activity.participants || [];
-  const isParticipant = participants.includes(userId);
-  const canAccess = activity.publisherId === userId
-    || activity.audience === 'public'
-    || (activity.audience !== 'public' && matchIds.has(activity.publisherId));
-
-  return !Number.isNaN(expiresAt.getTime())
-    && expiresAt > new Date()
-    && canAccess
-    && (isParticipant || participants.length < getParticipantLimit(activity));
-}
-
 router.post('/create', async (req, res) => {
   try {
     const { publisherId, video, participantLimit, expiresInHours, audience = 'matches' } = req.body;
@@ -177,25 +163,29 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Discover accessible live conversations by YouTube category or video title.
-// Firestore does not support portable case-insensitive substring search, so the
-// MVP filters its active rooms server-side and keeps the result set private to
-// rooms the requester can join.
+// Discover public, live conversations the member has not yet joined, filtered
+// by YouTube category or video title. Firestore does not support portable
+// case-insensitive substring search, so the MVP filters active rooms server-side.
 router.get('/discover', async (req, res) => {
   try {
     const { userId, categoryId, q = '' } = req.query;
     if (!userId) return res.status(400).json({ error: 'userId is required' });
     if (!db) return res.status(503).json({ error: 'Database not configured' });
 
-    const [matchIds, snapshot] = await Promise.all([
-      getMatchUserIds(userId),
-      db.collection('activities').get()
-    ]);
+    const snapshot = await db.collection('activities').get();
     const query = String(q).trim().toLowerCase();
     const selectedCategoryId = String(categoryId || 'all');
     const activities = snapshot.docs
       .map(doc => ({ id: doc.id, ...doc.data() }))
-      .filter(activity => isLiveAndJoinable(activity, userId, matchIds))
+      .filter(activity => {
+        const expiresAt = toDate(activity.expiresAt);
+        const participants = activity.participants || [];
+        return activity.audience === 'public'
+          && !participants.includes(userId)
+          && !Number.isNaN(expiresAt.getTime())
+          && expiresAt > new Date()
+          && participants.length < getParticipantLimit(activity);
+      })
       .filter(activity => selectedCategoryId === 'all' || String(activity.video?.categoryId || '') === selectedCategoryId)
       .filter(activity => !query || String(activity.video?.title || '').toLowerCase().includes(query))
       .map(activity => serialiseActivity(activity.id, activity))

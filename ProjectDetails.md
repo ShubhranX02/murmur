@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to find public or eligible matches-only video conversations by YouTube category or title; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
+7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.49` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.50`, `4.51`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.50` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.51`, `4.52`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -144,7 +144,8 @@ Routes are declared in `src/App.jsx`:
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
 | `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
-| `/find` | `FindPage` | Discover live, joinable conversations by YouTube category or video-title search, then join directly into their chatroom |
+| `/find` | `FindPage` | Discover category cards and start a public-conversation title search |
+| `/find/:categoryId` | `FindPage` | Separate public, unjoined-conversation results view for a selected category or title search, with a Back to categories action |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a direct match or group to open its conversation, or use the Chats-header plus button to create a group |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected direct match or group in the workspace chat panel |
 | `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 grid of taller widgets; its top-left card uses larger welcome content, top-centre card gives its Total Matches and Today’s Matches halves matching label treatment and roomy spacing, and top-right card centres a large profile avatar above the member’s name, age, gender, and location |
@@ -197,7 +198,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 ### UI components
 
 - `Navbar`: fixed top navigation whose leftmost option is a search icon that opens a member-ID search window; its remaining links are ordered The Algorithm, Discover, Conversations, Matches, and Dashboard. A clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
-- `Discover`: shows a video-title search bar above category cards for All Conversations plus every category supported by the current YouTube mapping. The desktop grid uses four cards per row; selecting a category or searching a title shows accessible, recency-sorted rooms with a **Join** action.
+- `Discover`: shows a video-title search bar above category cards for All Conversations plus every category supported by the current YouTube mapping. The desktop grid uses four cards per row; selecting a category or submitting a title search opens a separate results view with a Back to categories action. It lists only accessible, recency-sorted public rooms the member has not already joined, each with a **Join** action.
 - `Conversations`: its sub-heading explains that it lists conversations started by matches and those joined from **Discover**, which remains an inline link to `/find`. Starting a conversation lets the creator select a total capacity of 2–30 people and set its audience to **Public** or **Matches Only**.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
@@ -281,7 +282,7 @@ The navigation search window checks the existing public-profile endpoint before 
 | --- | --- | --- | --- |
 | `POST` | `/create` | `{ "publisherId", "video", "participantLimit", "expiresInHours", "audience" }` | Creates a room with a 2–30 total-member capacity and either `public` or `matches` audience |
 | `GET` | `/?userId=...` | None | Returns active rooms created by the member or their matches, plus rooms the member joined through Discover; newest first |
-| `GET` | `/discover?userId=...&categoryId=...&q=...` | None | Returns accessible, live, joinable rooms filtered by YouTube category and/or case-insensitive video-title substring; newest first |
+| `GET` | `/discover?userId=...&categoryId=...&q=...` | None | Returns live, joinable public rooms the member has not already joined, filtered by YouTube category and/or case-insensitive video-title substring; newest first |
 | `POST` | `/:activityId/join` | `{ "userId" }` | Adds an eligible member to a room and permits them to enter its chatroom |
 | `GET` | `/:activityId/details` | None | Returns a room and its participant profiles |
 | `GET` | `/:activityId/messages` | None | Returns the room’s messages, oldest first |
@@ -494,7 +495,7 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 7. **Define privacy and retention policy.** Member profiles now deliberately share aggregate liked-video counts and category breakdowns, while raw videos, subscriptions, email, and embeddings remain private. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
 8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
 9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
-10. **Scale Discover search.** The MVP filters active rooms in the backend to supply private, case-insensitive video-title substring results. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
+10. **Scale Discover search.** The MVP filters active public rooms in the backend to perform case-insensitive video-title substring results without exposing nonpublic rooms. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
 11. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
 
 ---
@@ -548,3 +549,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.47` (2026-07-18): Completed a project-context review covering Murmur's vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
 - `v4.48` (2026-07-18): Restyled Discover category cards as square, page-toned tiles with a unique new text colour for every category; category-card backgrounds are now intentionally uniform rather than multicoloured.
 - `v4.49` (2026-07-18): Changed Discover's All Conversations label to white and increased category-card label sizes on desktop and mobile.
+- `v4.50` (2026-07-18): Moved Discover category and title-search results into their own routed view with a Back to categories action. Discover now exposes only live public rooms the member has not joined, excluding matches-only and already-joined conversations.

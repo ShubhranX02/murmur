@@ -29,6 +29,7 @@ function App() {
               <Route path="/activity/:activityId" element={<ActivityRoomPage />} />
               <Route path="/algorithm" element={<AlgorithmPage />} />
               <Route path="/find" element={<FindPage />} />
+              <Route path="/find/:categoryId" element={<FindPage />} />
               <Route path="/matches" element={<MatchesPage />} />
               <Route path="/matches/:matchId" element={<MatchesPage />} />
               <Route path="/dashboard" element={<DashboardPage />} />

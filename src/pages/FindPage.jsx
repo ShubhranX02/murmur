@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { CATEGORY_MAP } from '../config/categories';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -10,10 +10,10 @@ const CATEGORY_COLOURS = ['#ffb703', '#fb8500', '#e76f51', '#e9c46a', '#f4a261',
 function FindPage() {
   const { user, isAuthenticated, isOnboarded } = useAuth();
   const navigate = useNavigate();
+  const { categoryId } = useParams();
+  const [searchParams] = useSearchParams();
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [hasSelectedCategory, setHasSelectedCategory] = useState(false);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
   const [activities, setActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,9 +23,13 @@ function FindPage() {
     { id: 'all', name: 'All Conversations', colour: '#ffffff' },
     ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index + 1] }))
   ], []);
-  const isShowingResults = hasSelectedCategory || Boolean(search.trim());
+  const isResultsView = Boolean(categoryId);
+  const selectedCategory = categories.some(category => category.id === categoryId) ? categoryId : 'all';
   const selectedCategoryName = categories.find(category => category.id === selectedCategory)?.name || 'All Conversations';
-  const requestedCategory = search.trim() ? 'all' : selectedCategory;
+
+  useEffect(() => {
+    setSearch(searchParams.get('q') || '');
+  }, [categoryId, searchParams]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -36,14 +40,14 @@ function FindPage() {
   }, [isAuthenticated, isOnboarded, navigate, user?.detailsComplete]);
 
   useEffect(() => {
-    if (!user?.id || !isShowingResults) return undefined;
+    if (!user?.id || !isResultsView) return undefined;
 
     const controller = new AbortController();
     const loadDiscoverResults = async () => {
       setIsLoading(true);
       setError('');
       try {
-        const params = new URLSearchParams({ userId: user.id, categoryId: requestedCategory });
+        const params = new URLSearchParams({ userId: user.id, categoryId: selectedCategory });
         if (search.trim()) params.set('q', search.trim());
         const response = await fetch(`${apiUrl}/api/activities/discover?${params.toString()}`, { signal: controller.signal });
         const data = await response.json().catch(() => ({}));
@@ -61,11 +65,16 @@ function FindPage() {
       controller.abort();
       window.clearTimeout(timer);
     };
-  }, [apiUrl, search, requestedCategory, user?.id, isShowingResults]);
+  }, [apiUrl, isResultsView, search, selectedCategory, user?.id]);
 
   const selectCategory = categoryId => {
-    setSelectedCategory(categoryId);
-    setHasSelectedCategory(true);
+    navigate(`/find/${categoryId}`);
+  };
+
+  const openSearchResults = event => {
+    event.preventDefault();
+    const query = search.trim();
+    if (query) navigate(`/find/all?q=${encodeURIComponent(query)}`);
   };
 
   const joinConversation = async activityId => {
@@ -89,24 +98,19 @@ function FindPage() {
 
   return (
     <div className="discover-page animate-fade-in-up">
-      <header className="discover-header">
-        <h1>Discover</h1>
-        <p>Find live conversations around the videos and topics you care about.</p>
-        <label className="discover-search-field">
-          <span>Search conversations by video title</span>
-          <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search for a video title" autoComplete="off" />
-        </label>
-      </header>
-
-      <section className="discover-category-grid" aria-label="Conversation categories">
-        {categories.map(category => (
-          <button key={category.id} type="button" className={`discover-category-card ${selectedCategory === category.id && hasSelectedCategory ? 'is-selected' : ''}`} style={{ '--category-colour': category.colour }} onClick={() => selectCategory(category.id)}>
-            {category.name}
-          </button>
-        ))}
-      </section>
-
-      {isShowingResults && (
+      {isResultsView ? (
+        <>
+          <header className="discover-header discover-results-header">
+            <button type="button" className="btn-secondary discover-back-button" onClick={() => navigate('/find')}>← Back to categories</button>
+            <h1>{selectedCategoryName}</h1>
+            <p>Browse public conversations you have not joined yet.</p>
+            <form className="discover-search-form" onSubmit={event => event.preventDefault()}>
+              <label className="discover-search-field">
+                <span>Search this category by video title</span>
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search for a video title" autoComplete="off" />
+              </label>
+            </form>
+          </header>
         <section className="discover-results" aria-live="polite">
           <div className="discover-results-heading">
             <h2>{search.trim() ? `Results for “${search.trim()}”` : selectedCategoryName}</h2>
@@ -131,6 +135,29 @@ function FindPage() {
             </div>
           )}
         </section>
+        </>
+      ) : (
+        <>
+          <header className="discover-header">
+            <h1>Discover</h1>
+            <p>Find live conversations around the videos and topics you care about.</p>
+            <form className="discover-search-form" onSubmit={openSearchResults}>
+              <label className="discover-search-field">
+                <span>Search conversations by video title</span>
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search for a video title" autoComplete="off" />
+              </label>
+              <button type="submit" className="btn-secondary discover-search-button" disabled={!search.trim()}>Search</button>
+            </form>
+          </header>
+
+          <section className="discover-category-grid" aria-label="Conversation categories">
+            {categories.map(category => (
+              <button key={category.id} type="button" className="discover-category-card" style={{ '--category-colour': category.colour }} onClick={() => selectCategory(category.id)}>
+                {category.name}
+              </button>
+            ))}
+          </section>
+        </>
       )}
     </div>
   );

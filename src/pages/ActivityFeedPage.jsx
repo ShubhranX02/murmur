@@ -5,13 +5,11 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import './ActivityFeedPage.css';
 
 function ActivityFeedPage() {
-  const { user, storeYouTubeToken, updateUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshMessage, setRefreshMessage] = useState(null);
 
   useEffect(() => {
     if (!user) {
@@ -54,78 +52,16 @@ function ActivityFeedPage() {
     }
   };
 
-  const handleRefreshYoutube = async () => {
-    if (!window.google) {
-      setRefreshMessage('Google is still loading. Please try again in a moment.');
-      return;
-    }
-
-    setRefreshing(true);
-    setRefreshMessage(null);
-    try {
-      let clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-      if (!clientId) {
-        const clientResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/google-client-id`);
-        const clientData = await clientResponse.json().catch(() => ({}));
-        if (!clientResponse.ok || !clientData.clientId) throw new Error('Google sign-in is not configured.');
-        clientId = clientData.clientId;
-      }
-
-      const tokenClient = window.google.accounts.oauth2.initTokenClient({
-        client_id: clientId,
-        scope: 'https://www.googleapis.com/auth/youtube.readonly',
-        callback: async response => {
-          try {
-            if (!response.access_token) throw new Error('YouTube connection was cancelled or failed.');
-            await storeYouTubeToken(response.access_token);
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const youtubeResponse = await fetch(`${apiUrl}/api/youtube/fetch`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id })
-            });
-            const youtubeData = await youtubeResponse.json().catch(() => ({}));
-            if (!youtubeResponse.ok) throw new Error(youtubeData.error || 'Could not fetch your latest YouTube data.');
-            const matchResponse = await fetch(`${apiUrl}/api/matches/compute`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ userId: user.id, likedVideos: youtubeData.likedVideos, subscriptions: youtubeData.subscriptions })
-            });
-            const matchData = await matchResponse.json().catch(() => ({}));
-            if (!matchResponse.ok) throw new Error(matchData.error || 'Could not refresh your matches.');
-            updateUser({ ...matchData.profileData, onboarded: true, requiresYouTubeRefresh: false });
-            setRefreshMessage('Your latest YouTube data and match candidates are ready.');
-          } catch (refreshError) {
-            setRefreshMessage(refreshError.message || 'Could not refresh your YouTube data.');
-          } finally {
-            setRefreshing(false);
-          }
-        },
-        error_callback: () => {
-          setRefreshMessage('YouTube connection was cancelled or failed.');
-          setRefreshing(false);
-        }
-      });
-      tokenClient.requestAccessToken();
-    } catch (refreshError) {
-      setRefreshMessage(refreshError.message || 'Could not start the YouTube refresh.');
-      setRefreshing(false);
-    }
-  };
-
   if (!user) return null;
 
   return (
     <div className="activity-page animate-fade-in-up">
       <div className="activity-header">
         <h1>Activity</h1>
-        <div className="activity-header-actions">
-          <button className="btn-secondary refresh-youtube-btn" onClick={handleRefreshYoutube} disabled={refreshing}>
-            {refreshing ? 'Refreshing YouTube…' : 'Refresh YouTube data'}
-          </button>
-          <button className="btn-primary start-convo-btn" onClick={() => navigate('/activity/create')}>
-            <span className="plus-icon">+</span> Start Conversation
-          </button>
-        </div>
+        <button className="btn-primary start-convo-btn" onClick={() => navigate('/activity/create')}>
+          <span className="plus-icon">+</span> Start Conversation
+        </button>
       </div>
-      {refreshMessage && <p className="refresh-message" role="status">{refreshMessage}</p>}
 
       <div className="activity-feed">
         {loading ? (

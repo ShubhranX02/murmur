@@ -91,7 +91,7 @@ function CreateActivityPage() {
       const matchData = await matchRes.json();
       
       if (matchData.profileData) {
-        updateUser({ ...matchData.profileData, onboarded: true });
+        updateUser({ ...matchData.profileData, onboarded: true, requiresYouTubeRefresh: false });
       }
       setIsSyncing(false);
     } catch (err) {
@@ -143,14 +143,16 @@ function CreateActivityPage() {
         <div className="create-header">
           <button className="btn-secondary back-btn" onClick={() => navigate(-1)}>← Back</button>
           <h2>Start a Conversation</h2>
+          <button className="btn-secondary refresh-conversation-youtube" onClick={handleConnectYouTube} disabled={isSyncing}>
+            {isSyncing ? 'Refreshing YouTube…' : 'Refresh YouTube data'}
+          </button>
         </div>
+        {syncError && <div className="text-danger conversation-sync-error" role="alert">{syncError}</div>}
         
         {savedVideos.length === 0 ? (
           <div className="no-videos-message">
             <p>You don't have any saved liked videos yet.</p>
             <p className="text-muted mt-16" style={{marginBottom: '24px'}}>Since this is a new feature, you need to sync your videos from YouTube.</p>
-            
-            {syncError && <div className="text-danger" style={{marginBottom: '16px'}}>{syncError}</div>}
             
             <button 
               className="btn-primary" 
@@ -158,7 +160,7 @@ function CreateActivityPage() {
               onClick={handleConnectYouTube}
               disabled={isSyncing}
             >
-              <span className="icon-yt">▶</span> {isSyncing ? 'Syncing Videos...' : 'Connect YouTube'}
+              <span className="icon-yt">▶</span> {isSyncing ? 'Refreshing YouTube…' : 'Refresh YouTube data'}
             </button>
           </div>
         ) : (

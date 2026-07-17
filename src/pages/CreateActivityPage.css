@@ -23,6 +23,15 @@
   font-size: 24px;
 }
 
+.refresh-conversation-youtube {
+  margin-left: auto;
+  padding: 9px 14px;
+}
+
+.conversation-sync-error {
+  margin: -16px 0 20px;
+}
+
 .back-btn {
   padding: 8px 16px;
 }
@@ -169,4 +178,16 @@ select.glass-input option {
 .create-submit-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (max-width: 620px) {
+  .create-header {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .refresh-conversation-youtube {
+    width: 100%;
+    margin-left: 0;
+  }
 }

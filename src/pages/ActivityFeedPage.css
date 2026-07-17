@@ -18,22 +18,6 @@
   margin: 0;
 }
 
-.activity-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.refresh-youtube-btn {
-  padding: 10px 16px;
-}
-
-.refresh-message {
-  margin: -18px 0 24px;
-  color: var(--text-secondary);
-  font-size: 14px;
-}
-
 .start-convo-btn {
   display: flex;
   align-items: center;
@@ -162,7 +146,4 @@
     gap: 14px;
   }
 
-  .activity-header-actions {
-    flex-wrap: wrap;
-  }
 }

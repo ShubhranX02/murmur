@@ -49,7 +49,7 @@ function DashboardPage() {
         <section className="dashboard-card dashboard-welcome-card glass">
           <h2>Welcome to Murmur</h2>
           <p>Discover people who share your passions through your YouTube feed. No bios, no swiping — just genuine connections built on what you actually love.</p>
-          <Link to="/algorithm" className="dashboard-algorithm-link">View The Algorithm</Link>
+          <Link to="/algorithm" className="dashboard-algorithm-link">View The Algorithm →</Link>
         </section>
         <section className="dashboard-card dashboard-match-details-card glass">
           <div className="dashboard-match-total">
@@ -57,6 +57,7 @@ function DashboardPage() {
             <strong>{matchSummary.totalMatches}</strong>
           </div>
           <div className="dashboard-daily-match">
+            <h2>Today&apos;s Matches</h2>
             {matchSummary.todayMatches.length ? (
               <div className="dashboard-daily-avatars" aria-label="Today's new matches">
                 {matchSummary.todayMatches.map(match => (
@@ -64,7 +65,7 @@ function DashboardPage() {
                 ))}
               </div>
             ) : <p>Your next introduction will arrive when a new match is available.</p>}
-            <Link to="/matches" className="dashboard-talk-link">Talk to your matches</Link>
+            <Link to="/matches" className="dashboard-talk-link">Talk to your matches →</Link>
           </div>
         </section>
         <Link to="/profile" className="dashboard-card dashboard-profile-card glass" aria-label="View your profile">
@@ -73,7 +74,11 @@ function DashboardPage() {
             <div>
               <span className="dashboard-profile-label">Your profile</span>
               <h2>{user.displayName}</h2>
-              <p>{user.profileDetails?.location?.city || 'Your Murmur profile'}</p>
+              <dl className="dashboard-profile-details">
+                <div><dt>Age</dt><dd>{user.profileDetails?.age || '—'}</dd></div>
+                <div><dt>Gender</dt><dd>{user.profileDetails?.gender || '—'}</dd></div>
+                <div><dt>Location</dt><dd>{[user.profileDetails?.location?.city, user.profileDetails?.location?.state].filter(Boolean).join(', ') || '—'}</dd></div>
+              </dl>
             </div>
           </div>
           <span className="dashboard-profile-link">View profile →</span>

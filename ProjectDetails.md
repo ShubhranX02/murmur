@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.28` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.29`, `4.30`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.29` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.30`, `4.31`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -147,7 +147,7 @@ Routes are declared in `src/App.jsx`:
 | `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
-| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its top-left card welcomes the member, top-centre card summarises delivered matches and links to Chats, and top-right card previews and links to their profile |
+| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its taller top-left card welcomes the member, top-centre card shows total and Today’s Matches details before linking to Chats, and top-right card previews the member’s avatar, age, gender, and location before linking to their profile |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
 | `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
@@ -172,7 +172,7 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
-6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data**; the Activity page also offers a manual **Refresh YouTube data** action beside Start Conversation.
+6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data**; the Start a Conversation window also offers a manual **Refresh YouTube data** action.
 7. A new member must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words before their first match calculation. This lets location and age influence initial recommendations.
 8. The server then builds the taste profile, delivers up to five initial matches, and shows the completion/match-count screen.
 8. Completing onboarding, visiting the landing page while already fully onboarded, or signing in as a fully onboarded user takes the member to `/dashboard`.
@@ -485,3 +485,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.26` (2026-07-17): Increased the Dashboard widget height and replaced the top-right placeholder with a clickable preview of the signed-in member’s profile.
 - `v4.27` (2026-07-17): Increased desktop and mobile navigation-link spacing by 25%.
 - `v4.28` (2026-07-17): Added seven-day YouTube-data freshness enforcement and manual refresh, location/age-prioritised category-first matching, five initial plus daily delivered matches, Dashboard match details, and yellow highlights for unstarted conversations.
+- `v4.29` (2026-07-17): Made Dashboard widgets taller, added Today’s Matches and arrows to its action links, expanded the profile preview details, and moved YouTube refresh into the Start a Conversation window.

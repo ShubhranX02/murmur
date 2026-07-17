@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user enters the Dashboard, then can access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
+7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID, access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.43` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.44`, `4.45`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.45` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.46`, `4.47`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -144,7 +144,7 @@ Routes are declared in `src/App.jsx`:
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
 | `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
-| `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
+| `/find` | `FindPage` | Empty Discover tab retained for navigation continuity; exact member-ID lookup is in the navigation search window |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a direct match or group to open its conversation, or use the Chats-header plus button to create a group |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected direct match or group in the workspace chat panel |
 | `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 grid of taller widgets; its top-left card uses larger welcome content, top-centre card gives its Total Matches and Today’s Matches halves matching label treatment and roomy spacing, and top-right card centres a large profile avatar above the member’s name, age, gender, and location |
@@ -196,8 +196,8 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Conversations, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
-- `Conversations`: its sub-heading explains that it lists conversations started by matches and those joined from Discover; **Discover** is an inline link to `/find`.
+- `Navbar`: fixed top navigation whose leftmost option is a search icon that opens a member-ID search window; its remaining links are ordered The Algorithm, Discover, Conversations, Matches, and Dashboard. A clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
+- `Conversations`: its sub-heading explains that it lists conversations started by matches and those joined from **Discover**, which remains an inline link to `/find`.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
 - `PercentageRing`: animated SVG compatibility percentage.
@@ -272,7 +272,7 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
 | `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
 
-The Discover page checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
+The navigation search window checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`. The Discover tab is intentionally empty.
 
 ---
 
@@ -522,3 +522,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.41` (2026-07-18): Added named group chats to Matches: a Chats-header creation dialog, match-only invitations, persistent Firestore group records, group list entries, and group message delivery.
 - `v4.42` (2026-07-18): Completed project-context review, including Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google/YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
 - `v4.43` (2026-07-18): Completed and verified group chats in Matches, including the Chats-header creation control, group naming and match selection, protected group creation, persisted group-list entries, and group messaging.
+- `v4.44` (2026-07-18): Moved exact member-ID lookup from Discover into a leftmost navigation search icon and modal search window; Discover is now intentionally empty.
+- `v4.45` (2026-07-18): Restored the Conversations subheading's inline Discover link while retaining the intentionally empty Discover tab.

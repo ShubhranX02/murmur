@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.39` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.40`, `4.41`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.40` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.41`, `4.42`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -307,7 +307,22 @@ The batching and 50-video profile bound are important. Render’s CPU and cold s
 | Content vibe | Cosine similarity of user embeddings | 60% |
 | Categories | Cosine similarity of normalized category distributions | 40% |
 
-The final score is a direct weighted average of these percentages. Candidate selection happens before this score is calculated: Murmur orders eligible members by same canonical location first, then members within a preferred age range of +/- 5 years, and uses category cosine similarity as a low-cost first pass. Only the top 25 priority/category candidates receive embedding/vector scoring.
+Murmur first calculates a `rawScore` as the direct weighted average of these percentages, then applies a continuous, monotonic piecewise-linear presentation scale. The transformation preserves the underlying compatibility calculation and ranking while making stronger matches read more positively:
+
+| Raw score | Displayed score |
+| --- | --- |
+| 0–10% | 0–10% |
+| 10–20% | 10–20% |
+| 20–30% | 20–32% |
+| 30–40% | 32–48% |
+| 40–50% | 48–60% |
+| 50–60% | 60–71% |
+| 60–70% | 71–82% |
+| 70–80% | 82–90% |
+| 80–90% | 90–95% |
+| 90–100% | 95–100% |
+
+Candidate selection happens before this score is calculated: Murmur orders eligible members by same canonical location first, then members within a preferred age range of +/- 5 years, and uses category cosine similarity as a low-cost first pass. Only the top 25 priority/category candidates receive embedding/vector scoring. New match documents retain both the raw and displayed score; delivery records created before this scale were introduced are transformed when read, so existing members see the new scale immediately without a Firestore migration.
 
 After first onboarding, up to five of those ranked candidates are delivered as the member’s initial matches. Thereafter, the first eligible visit each new UTC day delivers one previously undiscovered candidate if one is available. This is intentionally delivery-based rather than exposing an unlimited recalculated list, to encourage more meaningful conversations.
 
@@ -355,7 +370,9 @@ Fields currently written include:
 ```js
 {
   users: [userIdA, userIdB],
-  score,
+  score,                 // Positively skewed displayed score
+  rawScore,              // Original 60/40 compatibility score
+  scoreScaleVersion,
   embeddingScore,
   categoryScore,
   createdAt
@@ -499,3 +516,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.37` (2026-07-17): Renamed the user-facing Activities tab and related page/dashboard labels to Conversations; the established `/activity` route and activities API remain unchanged for compatibility.
 - `v4.38` (2026-07-18): Added the Conversations sub-heading and inline Discover link explaining the source of listed conversations.
 - `v4.39` (2026-07-18): Removed the underline from the Discover link in the Conversations sub-heading.
+- `v4.40` (2026-07-18): Added a continuous, ranking-preserving positive score scale that maps raw match scores to the requested more appealing displayed ranges and applies it to legacy deliveries at read time.

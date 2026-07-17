@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, firebaseInitError } = require('../config/firebase');
-const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity } = require('../services/embedding');
+const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity, skewMatchScore, MATCH_SCORE_SCALE_VERSION } = require('../services/embedding');
 const { buildVideoText } = require('../services/youtube');
 
 const MAX_PROFILE_VIDEOS = 50;
@@ -102,6 +102,8 @@ async function saveMatches(userId, matches) {
     db.collection('matches').doc(match.matchId).set({
       users: [userId, match.userId],
       score: match.score,
+      rawScore: match.rawScore,
+      scoreScaleVersion: match.scoreScaleVersion,
       embeddingScore: match.embeddingScore,
       categoryScore: match.categoryScore,
       updatedAt: new Date()
@@ -129,6 +131,8 @@ async function deliverMatches(userId, matches, { initial = false } = {}) {
       displayName: match.displayName,
       photoURL: match.photoURL,
       score: match.score,
+      rawScore: match.rawScore,
+      scoreScaleVersion: match.scoreScaleVersion,
       embeddingScore: match.embeddingScore,
       categoryScore: match.categoryScore,
       deliveredAt,
@@ -185,6 +189,12 @@ async function listDeliveredMatches(userId) {
   return deliveries
     .map(delivery => ({
       ...delivery,
+      // Delivery records created before score-scale version 2 stored the old
+      // raw score. Transform them at read time so existing matches immediately
+      // receive the new presentation scale without a migration.
+      score: delivery.scoreScaleVersion === MATCH_SCORE_SCALE_VERSION
+        ? delivery.score
+        : skewMatchScore(delivery.score),
       // The client treats userId as the matched member. Keep the recipient
       // separately so profile and chat links never route back to themselves.
       recipientUserId: delivery.userId,

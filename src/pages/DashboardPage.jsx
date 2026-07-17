@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import './DashboardPage.css';
 
@@ -23,7 +23,12 @@ function DashboardPage() {
         <h1>Dashboard</h1>
       </div>
       <div className="dashboard-grid" aria-label="Dashboard widgets">
-        {Array.from({ length: 6 }, (_, index) => <section className="dashboard-card glass" key={index} />)}
+        <section className="dashboard-card dashboard-welcome-card glass">
+          <h2>Welcome to Murmur</h2>
+          <p>Discover people who share your passions through your YouTube feed. No bios, no swiping — just genuine connections built on what you actually love.</p>
+          <Link to="/algorithm" className="dashboard-algorithm-link">View The Algorithm</Link>
+        </section>
+        {Array.from({ length: 5 }, (_, index) => <section className="dashboard-card glass" key={index} />)}
       </div>
     </div>
   );

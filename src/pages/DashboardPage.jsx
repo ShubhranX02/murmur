@@ -28,7 +28,18 @@ function DashboardPage() {
           <p>Discover people who share your passions through your YouTube feed. No bios, no swiping — just genuine connections built on what you actually love.</p>
           <Link to="/algorithm" className="dashboard-algorithm-link">View The Algorithm</Link>
         </section>
-        {Array.from({ length: 5 }, (_, index) => <section className="dashboard-card glass" key={index} />)}
+        <Link to="/profile" className="dashboard-card dashboard-profile-card glass" aria-label="View your profile">
+          <div className="dashboard-profile-summary">
+            <img src={user.photoURL || '/default-avatar.png'} alt="" className="dashboard-profile-avatar" />
+            <div>
+              <span className="dashboard-profile-label">Your profile</span>
+              <h2>{user.displayName}</h2>
+              <p>{user.profileDetails?.location?.city || 'Your Murmur profile'}</p>
+            </div>
+          </div>
+          <span className="dashboard-profile-link">View profile →</span>
+        </Link>
+        {Array.from({ length: 4 }, (_, index) => <section className="dashboard-card glass" key={index} />)}
       </div>
     </div>
   );

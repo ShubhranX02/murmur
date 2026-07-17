@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.25` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.26`, `4.27`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.27` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.28`, `4.29`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -147,7 +147,7 @@ Routes are declared in `src/App.jsx`:
 | `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
 | `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
 | `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
-| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its top-left card welcomes the member and links to The Algorithm |
+| `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 widget grid; its top-left card welcomes the member and links to The Algorithm, while the top-right card previews and links to their profile |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
 | `/profile/:userId` | `ProfilePage` | Read-only, shareable view of another Murmur member's profile |
@@ -195,7 +195,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 20% from the previous values.
+- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
 - `PercentageRing`: animated SVG compatibility percentage.
@@ -475,3 +475,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.23` (2026-07-17): Reviewed and confirmed the active project context, including Murmur's product vision, React/Express/Firebase architecture, YouTube ingestion, semantic matching, APIs, deployment model, and production priorities.
 - `v4.24` (2026-07-17): Ensured current match scores display on other members’ profiles and standardized the requested hover/focus explanation across profile, chat-header, and match-list score displays.
 - `v4.25` (2026-07-17): Moved match-score tooltips into a top-level layer so they remain visible above the Matches workspace, and removed the unused red unread/total-count toggle from the Chats sidebar.
+- `v4.26` (2026-07-17): Increased the Dashboard widget height and replaced the top-right placeholder with a clickable preview of the signed-in member’s profile.
+- `v4.27` (2026-07-17): Increased desktop and mobile navigation-link spacing by 25%.

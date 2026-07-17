@@ -42,7 +42,7 @@
 }
 
 .navbar-links {
-  gap: 19.2px;
+  gap: 24px;
 }
 
 .app-version {
@@ -119,7 +119,7 @@
   }
   
   .navbar-links {
-    gap: 14.4px;
+    gap: 18px;
     overflow-x: auto;
     max-width: calc(100vw - 110px);
     scrollbar-width: none;

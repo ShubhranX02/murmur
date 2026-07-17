@@ -33,7 +33,7 @@
 }
 
 .dashboard-card {
-  min-height: 190px;
+  min-height: 270px;
 }
 
 .dashboard-welcome-card {
@@ -67,6 +67,66 @@
 .dashboard-algorithm-link:hover {
   color: var(--text-primary);
   text-decoration: underline;
+}
+
+.dashboard-profile-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 28px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.dashboard-profile-card:hover {
+  border-color: rgba(255, 82, 82, 0.55);
+  background: var(--bg-card-hover);
+  transform: translateY(-2px);
+}
+
+.dashboard-profile-card:focus-visible {
+  outline: 2px solid var(--primary-light);
+  outline-offset: 3px;
+}
+
+.dashboard-profile-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.dashboard-profile-avatar {
+  width: 64px;
+  height: 64px;
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.dashboard-profile-label,
+.dashboard-profile-summary p {
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.dashboard-profile-label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.dashboard-profile-summary h2 {
+  color: var(--text-primary);
+  font-size: 20px;
+  margin-bottom: 4px;
+}
+
+.dashboard-profile-link {
+  color: var(--primary-light);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .algorithm-empty {

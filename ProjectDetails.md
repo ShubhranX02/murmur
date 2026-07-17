@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.22` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.23`, `4.24`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.24` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.25`, `4.26`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -202,7 +202,7 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 - `ChatBubble`: sent/received chat-message display.
 - `LoadingSpinner`: shared progress indicator.
 
-The active design system is defined by CSS custom properties in `src/index.css`: deep navy background, red YouTube-inspired accent colors, glass cards, animation helpers, and shared button styles. Chat and Matches use the same visible doodle wallpaper over a black background.
+The active design system is defined by CSS custom properties in `src/index.css`: deep navy background, red YouTube-inspired accent colors, glass cards, animation helpers, and shared button styles. Chat and Matches use the same visible doodle wallpaper over a black background. Every rendered match score uses the shared, keyboard-accessible `MatchScore` component and its hover/focus tooltip: “Your Match Score - an indicator of how much your tastes match. It is calculated with the help of your YouTube data and The Algorithm”.
 
 ---
 
@@ -472,3 +472,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.20` (2026-07-17): Expanded the Dashboard grid to the available page width and added the requested top-left welcome card with a The Algorithm link.
 - `v4.21` (2026-07-17): Matched the Activities page width to Discover and The Algorithm, and removed the colored border around chat-list avatars.
 - `v4.22` (2026-07-17): Added current match-score display to other-member profiles and standardized the explanatory score tooltip across match lists, chat headers, and profiles.
+- `v4.23` (2026-07-17): Reviewed and confirmed the active project context, including Murmur's product vision, React/Express/Firebase architecture, YouTube ingestion, semantic matching, APIs, deployment model, and production priorities.
+- `v4.24` (2026-07-17): Ensured current match scores display on other members’ profiles and standardized the requested hover/focus explanation across profile, chat-header, and match-list score displays.

@@ -282,38 +282,20 @@
   box-shadow: 0 0 30px rgba(229, 57, 53, 0.18);
 }
 
-.algorithm-design-wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-  gap: 15px;
+.algorithm-icon,
+.configuration-icon {
+  filter: invert(52%) sepia(88%) saturate(1696%) hue-rotate(330deg) brightness(102%) contrast(88%) drop-shadow(0 0 12px rgba(229, 57, 53, 0.6));
 }
 
-.algorithm-heart-image {
-  max-width: 320px;
-  width: 100%;
+.algorithm-icon {
+  width: min(58%, 250px);
   height: auto;
-  object-fit: contain;
-  mix-blend-mode: screen; /* Blend out black background */
-  filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.65));
 }
 
-.algorithm-subscript-wrapper {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-  margin-top: -10px;
-}
-
-.algorithm-text-image {
-  max-width: 240px; /* subscript size relative to heart design */
-  width: 100%;
-  height: auto;
-  object-fit: contain;
-  mix-blend-mode: screen; /* Blend out black background */
+.configuration-icon {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
 }
 
 .algorithm-placeholder-content {
@@ -324,14 +306,6 @@
   text-align: center;
   padding: 20px;
   color: var(--text-secondary);
-}
-
-.algorithm-glow-icon {
-  font-size: 48px;
-  margin-bottom: 20px;
-  color: var(--primary-light);
-  filter: drop-shadow(0 0 12px rgba(229, 57, 53, 0.8));
-  animation: float 4s ease-in-out infinite;
 }
 
 .algorithm-placeholder-content h3 {

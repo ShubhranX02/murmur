@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import algorithmIcon from '../../assets/algorithm.svg';
+import configurationIcon from '../../assets/configuration.svg';
 import './DashboardPage.css';
 
 function AlgorithmPage() {
@@ -22,24 +24,11 @@ function AlgorithmPage() {
       <h1>The Algorithm</h1>
       <div className="algorithm-container">
         <div className="algorithm-column left glass">
-          <div className="algorithm-design-wrapper">
-            <img 
-              src="/heart_glowing.png" 
-              alt="Glow Heart Design" 
-              className="algorithm-heart-image" 
-            />
-            <div className="algorithm-subscript-wrapper">
-              <img 
-                src="/recent_likes_text.png" 
-                alt="YouTube match explanation" 
-                className="algorithm-text-image" 
-              />
-            </div>
-          </div>
+          <img src={algorithmIcon} alt="Algorithm network" className="algorithm-icon" />
         </div>
         <div className="algorithm-column right glass">
           <div className="algorithm-placeholder-content">
-            <div className="algorithm-glow-icon">⚡</div>
+            <img src={configurationIcon} alt="Configuration controls" className="configuration-icon" />
             <h3>Category Compatibility</h3>
             <p>We analyze the distribution of YouTube categories in your liked videos and subscriptions, correlating your vibe across standard genres like Music, Gaming, Tech, and more to calculate a multi-dimensional affinity score.</p>
             <div className="algorithm-coming-soon-badge">Coming Soon</div>

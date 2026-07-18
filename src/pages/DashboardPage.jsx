@@ -67,6 +67,15 @@ function DashboardPage() {
             <Link to="/matches" className="dashboard-talk-link">Talk to your matches →</Link>
           </div>
         </section>
+        <section className="dashboard-card dashboard-content-card glass">
+          <h2>Discover public conversations</h2>
+          <p>Join conversations published by all users of Murmur about any category that you are interested in.</p>
+        </section>
+        <section className="dashboard-card dashboard-content-card glass">
+          <h2>Shared interests, endless gossip</h2>
+          <p>Start or join in on a conversation with the people you cherish and on the topic you enjoy discussing.</p>
+          <Link to="/activity" className="dashboard-content-link">Start a Conversation →</Link>
+        </section>
         <Link to="/profile" className="dashboard-card dashboard-profile-card glass" aria-label="View your profile">
           <div className="dashboard-profile-summary">
             <span className="dashboard-profile-label">Your profile</span>
@@ -80,12 +89,6 @@ function DashboardPage() {
           </div>
           <span className="dashboard-profile-link">View profile →</span>
         </Link>
-        <section className="dashboard-card dashboard-content-card glass">
-          <h2>Shared interests, endless gossip</h2>
-          <p>Start or join in on a conversation with the people you cherish and on the topic you enjoy discussing.</p>
-          <Link to="/activity" className="dashboard-content-link">Start a Conversation →</Link>
-        </section>
-        <section className="dashboard-card glass" />
         <section className="dashboard-card dashboard-content-card glass">
           <h2>The Invisible Thread</h2>
           <p>Your pairing wasn&apos;t an accident. See the data and compatibility factors that made this match happen.</p>

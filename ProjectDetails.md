@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.65` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.66`, `4.67`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.66` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.67`, `4.68`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -565,3 +565,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.63` (2026-07-18): Replaced The Algorithm tab's first-card imagery with the supplied Algorithm SVG and its second-card lightning icon with the supplied Configuration SVG; the first card now contains only its centred icon.
 - `v4.64` (2026-07-18): Removed the Category Compatibility card's Coming Soon badge and added the requested Your Content Vibe heading and description beneath the first-card icon, using the same icon-heading-copy structure in both cards.
 - `v4.65` (2026-07-18): Added a second row to The Algorithm tab with the supplied People SVG and requested location-and-age explanation, plus the existing profile CategoryRingChart component using the signed-in member's category distribution.
+- `v4.66` (2026-07-18): Replaced The Algorithm tab's Your Location and Age description with the requested proximity, shared-life-stage, and offline-connection messaging.

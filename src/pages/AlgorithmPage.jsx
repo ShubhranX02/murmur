@@ -43,7 +43,7 @@ function AlgorithmPage() {
           <div className="algorithm-placeholder-content">
             <img src={peopleIcon} alt="People in your local community" className="people-icon" />
             <h3>Your Location and Age</h3>
-            <p>The Algorithm prioritises matches that live in the same city and are around the same age. We believe that meeting offline and doing activities together is essential to building a meaningful and everlasting connection.</p>
+            <p>The Algorithm is built on a simple belief: proximity and shared life stages matter. That&apos;s why we prioritise matches who live in your city and are close to your age, because real connection needs real-world roots. We&apos;re not here to keep you scrolling. We&apos;re here to get you offline, into shared experiences, and on the path to relationships that actually last.</p>
           </div>
         </div>
         <div className="algorithm-column right glass">

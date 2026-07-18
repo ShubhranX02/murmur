@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { db, firebaseInitError } = require('../config/firebase');
-const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity } = require('../services/embedding');
+const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity, skewMatchScore, MATCH_SCORE_SCALE_VERSION } = require('../services/embedding');
 const { buildVideoText } = require('../services/youtube');
 
 const MAX_PROFILE_VIDEOS = 50;
@@ -102,6 +102,8 @@ async function saveMatches(userId, matches) {
     db.collection('matches').doc(match.matchId).set({
       users: [userId, match.userId],
       score: match.score,
+      rawScore: match.rawScore,
+      scoreScaleVersion: match.scoreScaleVersion,
       embeddingScore: match.embeddingScore,
       categoryScore: match.categoryScore,
       updatedAt: new Date()
@@ -129,6 +131,8 @@ async function deliverMatches(userId, matches, { initial = false } = {}) {
       displayName: match.displayName,
       photoURL: match.photoURL,
       score: match.score,
+      rawScore: match.rawScore,
+      scoreScaleVersion: match.scoreScaleVersion,
       embeddingScore: match.embeddingScore,
       categoryScore: match.categoryScore,
       deliveredAt,
@@ -185,6 +189,12 @@ async function listDeliveredMatches(userId) {
   return deliveries
     .map(delivery => ({
       ...delivery,
+      // Delivery records created before score-scale version 2 stored the old
+      // raw score. Transform them at read time so existing matches immediately
+      // receive the new presentation scale without a migration.
+      score: delivery.scoreScaleVersion === MATCH_SCORE_SCALE_VERSION
+        ? delivery.score
+        : skewMatchScore(delivery.score),
       // The client treats userId as the matched member. Keep the recipient
       // separately so profile and chat links never route back to themselves.
       recipientUserId: delivery.userId,
@@ -230,9 +240,11 @@ router.post('/compute', async (req, res) => {
           id: video.id,
           title: video.snippet?.title || 'Unknown Title',
           channelTitle: video.snippet?.channelTitle || 'Unknown Creator',
-          thumbnailUrl: video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url || null
+          thumbnailUrl: video.snippet?.thumbnails?.medium?.url || video.snippet?.thumbnails?.default?.url || null,
+          categoryId: video.snippet?.categoryId || null
         }))
       },
+      youtubeRefreshSkipped: false,
       updatedAt: new Date()
     };
     await runFirestore(() => userRef.set(profileData, { merge: true }));
@@ -263,10 +275,46 @@ router.get('/:userId/:otherUserId', async (req, res) => {
     if (!userDoc.exists || !otherUserDoc.exists || !isEligibleProfile(userDoc.data()) || !isEligibleProfile(otherUserDoc.data())) {
       return res.status(404).json({ error: 'A match score is not available for this member.' });
     }
-    return res.json({ match: { matchId: getMatchId(userId, otherUserId), userId: otherUserId, ...computeMatchScore(userDoc.data(), otherUserDoc.data()) } });
+    const matchId = getMatchId(userId, otherUserId);
+    const deliveryDoc = await db.collection(MATCH_DELIVERIES).doc(deliveryId(userId, otherUserId)).get();
+    return res.json({ match: { matchId, userId: otherUserId, isMatched: deliveryDoc.exists, ...computeMatchScore(userDoc.data(), otherUserDoc.data()) } });
   } catch (error) {
     console.error('Error fetching match score:', error);
     return res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not calculate this match score.' });
+  }
+});
+
+// Lets a member add an eligible profile they discovered to their own Matches list.
+router.post('/add', async (req, res) => {
+  try {
+    const { userId, otherUserId } = req.body;
+    if (!userId || !otherUserId || userId === otherUserId) {
+      return res.status(400).json({ error: 'Choose another member to add to your matches.' });
+    }
+    if (!db) return firestoreUnavailable(res);
+
+    const [userDoc, otherUserDoc] = await Promise.all([
+      db.collection('users').doc(userId).get(),
+      db.collection('users').doc(otherUserId).get()
+    ]);
+    if (!userDoc.exists || !otherUserDoc.exists || !isEligibleProfile(userDoc.data()) || !isEligibleProfile(otherUserDoc.data())) {
+      return res.status(404).json({ error: 'This member is not available to add yet.' });
+    }
+
+    const otherUser = otherUserDoc.data();
+    const match = {
+      matchId: getMatchId(userId, otherUserId),
+      userId: otherUserId,
+      displayName: otherUser.displayName || 'Murmur member',
+      photoURL: otherUser.photoURL || null,
+      ...computeMatchScore(userDoc.data(), otherUser)
+    };
+    await saveMatches(userId, [match]);
+    await deliverMatches(userId, [match]);
+    return res.status(201).json({ match: { ...match, isMatched: true } });
+  } catch (error) {
+    console.error('Error adding match:', error);
+    return res.status(error.status || 500).json({ error: error.status ? error.message : 'Could not add this member to your matches.' });
   }
 });
 

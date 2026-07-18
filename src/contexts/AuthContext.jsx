@@ -10,6 +10,10 @@ function hasFreshYouTubeData(user) {
   return Number.isFinite(timestamp) && Date.now() - timestamp < YOUTUBE_DATA_MAX_AGE_MS;
 }
 
+function canUseYouTubeData(user) {
+  return hasFreshYouTubeData(user) || Boolean(user?.youtubeRefreshSkipped);
+}
+
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
@@ -18,7 +22,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const isAuthenticated = !!user;
-  const isOnboarded = Boolean(user?.onboarded && !user?.requiresYouTubeRefresh && hasFreshYouTubeData(user));
+  const isOnboarded = Boolean(user?.onboarded && !user?.requiresYouTubeRefresh && canUseYouTubeData(user));
 
   useEffect(() => {
     // Restore session from localStorage
@@ -27,7 +31,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const savedProfile = JSON.parse(savedUser);
         // A local session must never bypass the weekly YouTube-data refresh.
-        if (hasFreshYouTubeData(savedProfile) && !savedProfile.requiresYouTubeRefresh) {
+        if (canUseYouTubeData(savedProfile) && !savedProfile.requiresYouTubeRefresh) {
           setUser(savedProfile);
         } else {
           localStorage.removeItem('murmur_user');

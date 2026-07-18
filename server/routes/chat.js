@@ -2,6 +2,96 @@ const express = require('express');
 const router = express.Router();
 const { db, FieldValue } = require('../config/firebase');
 
+function serialiseChatTimestamp(value) {
+  return value?.toDate ? value.toDate().toISOString() : null;
+}
+
+router.post('/groups', async (req, res) => {
+  try {
+    const { creatorId, name, memberIds = [] } = req.body;
+    const groupName = String(name || '').trim();
+    const requestedMemberIds = Array.isArray(memberIds) ? memberIds : [];
+    const selectedMemberIds = [...new Set(requestedMemberIds)]
+      .filter(memberId => typeof memberId === 'string' && memberId && memberId !== creatorId);
+
+    if (typeof creatorId !== 'string' || !creatorId || !groupName) {
+      return res.status(400).json({ error: 'Enter a name for your group.' });
+    }
+    if (groupName.length > 80) {
+      return res.status(400).json({ error: 'Keep the group name to 80 characters or fewer.' });
+    }
+    if (!db) {
+      return res.status(503).json({ error: 'Database not configured' });
+    }
+
+    // A group can only include people the creator has already matched with.
+    const deliveries = await db.collection('matchDeliveries').where('userId', '==', creatorId).get();
+    const matchedUserIds = new Set(deliveries.docs.map(doc => doc.data().otherUserId));
+    if (selectedMemberIds.some(memberId => !matchedUserIds.has(memberId))) {
+      return res.status(400).json({ error: 'Groups can only include your matches.' });
+    }
+
+    const groupRef = db.collection('chats').doc();
+    const users = [creatorId, ...selectedMemberIds];
+    await groupRef.set({
+      users,
+      isGroup: true,
+      groupName,
+      createdBy: creatorId,
+      createdAt: FieldValue.serverTimestamp(),
+      lastMessage: '',
+      lastMessageAt: FieldValue.serverTimestamp(),
+      lastSenderId: null,
+      readBy: [creatorId]
+    });
+
+    return res.status(201).json({
+      group: {
+        chatId: groupRef.id,
+        matchId: groupRef.id,
+        isGroup: true,
+        displayName: groupName,
+        memberCount: users.length,
+        hasStartedConversation: false,
+        hasUnreadMessages: false
+      }
+    });
+  } catch (error) {
+    console.error('Error creating group chat:', error);
+    return res.status(500).json({ error: 'Could not create the group chat.' });
+  }
+});
+
+router.get('/groups/:userId', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ error: 'Database not configured' });
+
+    const snapshot = await db.collection('chats').where('users', 'array-contains', req.params.userId).get();
+    const groups = snapshot.docs
+      .filter(doc => doc.data().isGroup)
+      .map(doc => {
+        const group = doc.data();
+        const readBy = group.readBy || [];
+        return {
+          chatId: doc.id,
+          matchId: doc.id,
+          isGroup: true,
+          displayName: group.groupName || 'Untitled group',
+          memberCount: (group.users || []).length,
+          hasStartedConversation: Boolean(group.lastMessage),
+          hasUnreadMessages: Boolean(group.lastSenderId && group.lastSenderId !== req.params.userId && !readBy.includes(req.params.userId)),
+          lastMessageAt: serialiseChatTimestamp(group.lastMessageAt || group.createdAt)
+        };
+      })
+      .sort((a, b) => new Date(b.lastMessageAt || 0) - new Date(a.lastMessageAt || 0));
+
+    return res.json({ groups });
+  } catch (error) {
+    console.error('Error loading group chats:', error);
+    return res.status(500).json({ error: 'Could not load group chats.' });
+  }
+});
+
 router.post('/send', async (req, res) => {
   try {
     const { chatId, senderId, text } = req.body;
@@ -20,10 +110,15 @@ router.post('/send', async (req, res) => {
       createdAt: FieldValue.serverTimestamp()
     };
 
-    // Extract users from chatId (e.g., "id1_id2")
-    const users = chatId.split('_');
-
     const chatRef = db.collection('chats').doc(chatId);
+    const existingChat = await chatRef.get();
+    const users = existingChat.exists && existingChat.data().isGroup
+      ? existingChat.data().users || []
+      : chatId.split('_');
+
+    if (existingChat.exists && existingChat.data().isGroup && !users.includes(senderId)) {
+      return res.status(403).json({ error: 'You are not a member of this group.' });
+    }
     
     // Write message to subcollection
     await chatRef.collection('messages').add(messageData);

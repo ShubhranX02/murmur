@@ -14,9 +14,9 @@ The current user journey is:
 4. The backend fetches their liked videos and subscriptions.
 5. Murmur embeds the 50 most recent liked videos, calculates an interest profile, scores other onboarded users, and stores the resulting matches.
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
-7. The user enters the Dashboard, then can access The Algorithm, Discover, Activity, Matches, Dashboard, and their profile from the navigation bar.
+7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.35` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.36`, `4.37`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.61` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.62`, `4.63`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -144,9 +144,10 @@ Routes are declared in `src/App.jsx`:
 | `/` | `LandingPage` | Marketing page and Get Started entry point |
 | `/onboarding` | `OnboardingPage` | Google sign-in, YouTube access, profile processing |
 | `/algorithm` | `AlgorithmPage` | Placeholder for the matching-algorithm experience; currently displays “Coming soon” |
-| `/find` | `FindPage` | Discover members by their exact Murmur user ID and open their profile |
-| `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a match to open its conversation |
-| `/matches/:matchId` | `MatchesPage` | Opens a selected match in the workspace chat panel |
+| `/find` | `FindPage` | Discover category cards and start a public-conversation title search |
+| `/find/:categoryId` | `FindPage` | Separate public, unjoined-conversation results view for a selected category or title search, with a Back to categories action |
+| `/matches` | `MatchesPage` | WhatsApp-style two-pane chat workspace; select a direct match or group to open its conversation, or use the Chats-header plus button to create a group |
+| `/matches/:matchId` | `MatchesPage` | Opens a selected direct match or group in the workspace chat panel |
 | `/dashboard` | `DashboardPage` | Default post-onboarding page with a near-full-width 3-by-2 grid of taller widgets; its top-left card uses larger welcome content, top-centre card gives its Total Matches and Today’s Matches halves matching label treatment and roomy spacing, and top-right card centres a large profile avatar above the member’s name, age, gender, and location |
 | `/chat/:matchId` | `ChatPage` | Legacy link that redirects into the selected workspace conversation |
 | `/profile` | `ProfilePage` | Signed-in user's editable profile and sign-out |
@@ -168,11 +169,11 @@ It persists the user object under `localStorage` key `murmur_user`. `signOut()` 
 `OnboardingPage.jsx` is intentionally structured as a single flow:
 
 1. If there is no user, it renders the Google Identity Services sign-in button.
-2. Murmur treats YouTube data as current for seven days. On local-session restoration, expired or missing YouTube data clears the session and requires a new Google sign-in. On sign-in, the backend also marks a profile with missing or week-old data as requiring refresh; those members are sent to onboarding to reconnect YouTube before entering the app.
+2. Murmur treats YouTube data as current for seven days. On local-session restoration, expired or missing YouTube data clears the session and requires a new Google sign-in. On sign-in, the backend marks a profile with missing or week-old data as requiring refresh; those members are sent to onboarding, where they can reconnect YouTube or continue with their saved taste profile.
 3. New users see the welcome screen and **Connect YouTube** button on the same screen. There is no separate YouTube tab.
 4. Google OAuth requests `https://www.googleapis.com/auth/youtube.readonly`.
 5. The app stores the short-lived access token in the backend’s in-memory token store.
-6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data**; the Start a Conversation window also offers a manual **Refresh YouTube data** action.
+6. It fetches current YouTube data. A returning member sees **Reconnect YouTube for latest data** and, after a weekly refresh prompt, can instead choose **Continue with saved taste profile**. The Start a Conversation window also offers a manual **Refresh YouTube data** action.
 7. A new member must select a City in India from the local searchable Class X/Class Y list, then supplies Age (13–120), Gender (Male, Female, or Other), and may add a description of at most 100 words before their first match calculation. This lets location and age influence initial recommendations.
 8. The server then builds the taste profile, delivers up to five initial matches, and shows the completion/match-count screen.
 8. Completing onboarding, visiting the landing page while already fully onboarded, or signing in as a fully onboarded user takes the member to `/dashboard`.
@@ -185,7 +186,7 @@ Each list entry has an app-stable canonical `id`, canonical `city`, `state`, `co
 
 The reusable `IndiaLocationPicker` is used both during onboarding and on a member’s profile-edit screen. Older profiles with free-text locations are preserved for display, but a member must select an eligible canonical location when they next save their details.
 
-Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile also sees a **Message** button that opens that member's conversation in the Matches workspace. Public profiles never return email addresses, embeddings, category distributions, or YouTube viewing data.
+Profiles use a page-based architecture rather than an in-place profile panel. The signed-in user can edit their own details at `/profile`; clicking a matched member's avatar/name in the Chats list or conversation header opens `/profile/:userId`. Each profile subtly shows its Firestore member ID. A non-owner viewing a profile sees **Message** when already matched, or **Add to matches** when eligible but not yet in their Matches list. Every onboarded profile displays its aggregate liked-video count, number of analysed categories, and category-breakdown chart. Public profiles never return email addresses, raw YouTube data, or embeddings.
 
 The Google client ID is resolved in this order:
 
@@ -196,7 +197,9 @@ The second option is preferable for deployed environments because `GOOGLE_CLIENT
 
 ### UI components
 
-- `Navbar`: fixed top navigation with links ordered The Algorithm, Discover, Activities, Matches, and Dashboard; a clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
+- `Navbar`: fixed top navigation whose leftmost option is a search icon that opens a member-ID search window; its remaining links are ordered The Algorithm, Discover, Conversations, Matches, and Dashboard. A clickable user avatar opens Profile, and a version badge is shown alongside the links. Desktop and mobile link gaps are increased by 25% from their prior values.
+- `Discover`: shows a video-title search bar above category cards for All Conversations plus every category supported by the current YouTube mapping. The square category cards retain a broad, bright always-on glow matching their unique label colour, which intensifies on hover/focus; the grid gap prevents neighbouring glows from colliding. The desktop grid uses four cards per row; selecting a category or submitting a title search opens a separate results view with a Back to categories action. It lists only accessible, recency-sorted public rooms the member has not already joined, each with a **Join** action.
+- `Conversations`: its sub-heading explains that it lists conversations started by matches and those joined from **Discover**, which remains an inline link to `/find`. Starting a conversation lets the creator select a total capacity of 2–30 people and set its audience to **Public** or **Matches Only**.
 - `MatchCard`: clickable match row with a score tooltip; list avatars are shown without a colored border.
 - `MatchScore`: reusable, keyboard-accessible score display. Hovering or focusing it explains how Murmur calculates a match score.
 - `PercentageRing`: animated SVG compatibility percentage.
@@ -238,8 +241,9 @@ Expected successful response:
 | `GET` | `/google-client-id` | None | Returns `{ "clientId": "..." }` from `GOOGLE_CLIENT_ID`; returns 503 when missing |
 | `POST` | `/google` | `{ "credential": "Google ID token" }` | Parses user identity, upserts basic user fields, returns `{ user }` |
 | `POST` | `/youtube-token` | `{ "accessToken", "userId" }` | Stores the token in memory for subsequent YouTube fetches |
-| `GET` | `/profile/:userId` | None | Returns a safe public profile: name, avatar, onboarding state, and profile details only |
+| `GET` | `/profile/:userId` | None | Returns a public profile: name, avatar, onboarding state, profile details, liked-video analysis count, and category distribution; excludes email, raw YouTube data, and embeddings |
 | `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "id" }, "age", "gender", "description" } }` | Validates the selected canonical Class X/Y ID, writes its canonical city/state/country/tier values, and marks `detailsComplete: true` |
+| `POST` | `/youtube-refresh/skip` | `{ "userId" }` | Saves the returning member’s choice to continue with their last stored taste profile rather than refresh YouTube |
 
 #### YouTube: `/api/youtube`
 
@@ -254,20 +258,36 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds and timestamps the current taste profile, refreshes category candidates, and delivers up to five initial matches for a newly onboarded member |
+| `POST` | `/add` | `{ "userId", "otherUserId" }` | Adds an eligible discovered member to the requesting user’s Matches list and returns the calculated score |
 | `GET` | `/:userId/:otherUserId` | None | Calculates the current user-to-user match score for display on a member profile |
 | `GET` | `/:userId` | None | Returns delivered matches, annotating unread and not-yet-started chats; when eligible, delivers one new undiscovered match for the day |
 
-The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data.
+The profile embedding uses the first 50 liked videos received from YouTube, intended to represent the user’s most recent tastes. Category statistics and subscription IDs still use all fetched data. A successful new YouTube analysis clears any prior refresh-skip choice.
 
 #### Chat: `/api/chat`
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
 | `POST` | `/send` | `{ "chatId", "senderId", "text" }` | Creates a message and updates chat metadata |
+| `POST` | `/groups` | `{ "creatorId", "name", "memberIds" }` | Creates a named group chat. Selected members must be matches of the creator; an empty selection creates a creator-only group. |
+| `GET` | `/groups/:userId` | None | Returns group chats that include the member, including unread and started-conversation status |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
 | `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
 
-The Discover page checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
+The navigation search window checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
+
+#### Conversations: `/api/activities`
+
+| Method | Endpoint | Request | Purpose |
+| --- | --- | --- | --- |
+| `POST` | `/create` | `{ "publisherId", "video", "participantLimit", "expiresInHours", "audience" }` | Creates a room with a 2–30 total-member capacity and either `public` or `matches` audience |
+| `GET` | `/?userId=...` | None | Returns active rooms created by the member or their matches, plus rooms the member joined through Discover; newest first |
+| `GET` | `/discover?userId=...&categoryId=...&q=...` | None | Returns live, joinable public rooms the member has not already joined, filtered by YouTube category and/or case-insensitive video-title substring; newest first |
+| `POST` | `/:activityId/join` | `{ "userId" }` | Adds an eligible member to a room and permits them to enter its chatroom |
+| `GET` | `/:activityId/details` | None | Returns a room and its participant profiles |
+| `GET` | `/:activityId/messages` | None | Returns the room’s messages, oldest first |
+| `POST` | `/:activityId/send` | `{ "senderId", "text" }` | Sends a message; the sender must already be a participant |
+| `DELETE` | `/:activityId` | `{ "userId" }` | Lets the creator end a room |
 
 ---
 
@@ -304,7 +324,22 @@ The batching and 50-video profile bound are important. Render’s CPU and cold s
 | Content vibe | Cosine similarity of user embeddings | 60% |
 | Categories | Cosine similarity of normalized category distributions | 40% |
 
-The final score is a direct weighted average of these percentages. Candidate selection happens before this score is calculated: Murmur orders eligible members by same canonical location first, then members within a preferred age range of +/- 5 years, and uses category cosine similarity as a low-cost first pass. Only the top 25 priority/category candidates receive embedding/vector scoring.
+Murmur first calculates a `rawScore` as the direct weighted average of these percentages, then applies a continuous, monotonic piecewise-linear presentation scale. The transformation preserves the underlying compatibility calculation and ranking while making stronger matches read more positively:
+
+| Raw score | Displayed score |
+| --- | --- |
+| 0–10% | 0–10% |
+| 10–20% | 10–20% |
+| 20–30% | 20–32% |
+| 30–40% | 32–48% |
+| 40–50% | 48–60% |
+| 50–60% | 60–71% |
+| 60–70% | 71–82% |
+| 70–80% | 82–90% |
+| 80–90% | 90–95% |
+| 90–100% | 95–100% |
+
+Candidate selection happens before this score is calculated: Murmur orders eligible members by same canonical location first, then members within a preferred age range of +/- 5 years, and uses category cosine similarity as a low-cost first pass. Only the top 25 priority/category candidates receive embedding/vector scoring. New match documents retain both the raw and displayed score; delivery records created before this scale were introduced are transformed when read, so existing members see the new scale immediately without a Firestore migration.
 
 After first onboarding, up to five of those ranked candidates are delivered as the member’s initial matches. Thereafter, the first eligible visit each new UTC day delivers one previously undiscovered candidate if one is available. This is intentionally delivery-based rather than exposing an unlimited recalculated list, to encourage more meaningful conversations.
 
@@ -342,7 +377,8 @@ Fields currently written include:
   youtubeData: {
     likedVideoCount,
     subscriptionCount,
-    topCategories
+    topCategories,
+    savedLikedVideos // Includes id, title, channel, thumbnail, and categoryId for room creation
   }
 }
 ```
@@ -352,7 +388,9 @@ Fields currently written include:
 ```js
 {
   users: [userIdA, userIdB],
-  score,
+  score,                 // Positively skewed displayed score
+  rawScore,              // Original 60/40 compatibility score
+  scoreScaleVersion,
   embeddingScore,
   categoryScore,
   createdAt
@@ -361,7 +399,11 @@ Fields currently written include:
 
 ### `matchDeliveries/{userId_otherUserId}`
 
-Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. The Matches API exposes the other member as `userId` (and the recipient separately as `recipientUserId`); every Matches-tab navigation path also explicitly prefers `otherUserId` for backwards-compatible profile and chat navigation. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
+Each recipient has a delivery record for the matches they are allowed to see. It stores the recipient and other member IDs, score snapshots, avatar/name display data, whether it was an initial introduction, and the delivery date/time. A member can also explicitly add an eligible profile they discover, which creates a delivery for that requesting member. The Matches API exposes the other member as `userId` (and the recipient separately as `recipientUserId`); every Matches-tab navigation path also explicitly prefers `otherUserId` for backwards-compatible profile and chat navigation. This collection supports the five-onboarding-match and one-new-match-per-day cadence without making every eligible score immediately visible.
+
+### `activities/{activityId}` and `activities/{activityId}/messages/{messageId}`
+
+Conversation rooms store the publisher, selected liked-video metadata (including its YouTube `categoryId`), participant IDs, expiry, and chat metadata. New rooms use `participantLimit` as a total capacity including the creator (2–30), while their legacy `limit` companion preserves compatibility with older clients. `audience` is either `public`, allowing any member to join through Discover, or `matches`, allowing only the creator’s matches. Older rooms without an audience are treated as matches-only.
 
 ### `chats/{chatId}` and `chats/{chatId}/messages/{messageId}`
 
@@ -385,7 +427,7 @@ The backend writes:
 }
 ```
 
-Chat messages are retrieved with polling every three seconds in the frontend. The matches list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Delivered matches with no sent chat message are additionally highlighted in yellow. The Matches page presents the match list and the active conversation in one desktop-style workspace; before a match is selected, its chat panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
+Chat messages are retrieved with polling every three seconds in the frontend. The direct-match and group-chat list refreshes every ten seconds and highlights chats whose latest message was sent by the other person and has not been read, including chats created before unread tracking was added. Delivered matches with no sent chat message are additionally highlighted in yellow. The Matches page presents the chat list and active conversation in one desktop-style workspace; the plus button beside **Chats** opens a dialog for a group name and zero or more matched members. Before a chat is selected, its panel says “Click on any chat to message.” Firestore real-time listeners are not currently used.
 
 ---
 
@@ -450,10 +492,11 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 4. **Synchronize profile data in the frontend.** After onboarding, `AuthContext.setOnboarded()` updates only `onboarded`; it does not update local `youtubeData`, so profile statistics may not reflect the stored backend profile until the next sign-in.
 5. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
 6. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
-7. **Define privacy and retention policy.** Users are sharing sensitive viewing preferences. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
+7. **Define privacy and retention policy.** Member profiles now deliberately share aggregate liked-video counts and category breakdowns, while raw videos, subscriptions, email, and embeddings remain private. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
 8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
 9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
-10. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
+10. **Scale Discover search.** The MVP filters active public rooms in the backend to perform case-insensitive video-title substring results without exposing nonpublic rooms. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
+11. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
 
 ---
 
@@ -491,4 +534,30 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.32` (2026-07-17): Added a client-side other-member-ID fallback for Matches navigation, protecting profile and chat links from older delivery-response shapes.
 - `v4.33` (2026-07-17): Applied explicit other-member ID resolution to chat selection and active-chat profile links as well as match-list profile links.
 - `v4.34` (2026-07-17): Restructured Dashboard bottom row: Activities link in bottom-left, empty placeholder in bottom-centre, Algorithm link with heading and description in bottom-right; removed Algorithm link from the welcome card.
-- `v4.35` (2026-07-18): Restructured The Algorithm page to present two vertical side-by-side rectangles. Embedded glowing heart and YouTube liked-videos matching explanation text images in the left column with mix-blend-mode screen for floating design integration; styled the right column as an active category affinity placeholder with red-themed hover glows.
+- `v4.35` (2026-07-17): Completed project-context review, covering Murmur's product vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment, and production priorities.
+- `v4.36` (2026-07-17): Added a profile-level Add to matches action for eligible unconnected members, a persisted skip option for the weekly YouTube refresh prompt, and shared aggregate YouTube-analysis counts/category breakdowns on every member profile.
+- `v4.37` (2026-07-17): Renamed the user-facing Activities tab and related page/dashboard labels to Conversations; the established `/activity` route and activities API remain unchanged for compatibility.
+- `v4.38` (2026-07-18): Added the Conversations sub-heading and inline Discover link explaining the source of listed conversations.
+- `v4.39` (2026-07-18): Removed the underline from the Discover link in the Conversations sub-heading.
+- `v4.40` (2026-07-18): Added a continuous, ranking-preserving positive score scale that maps raw match scores to the requested more appealing displayed ranges and applies it to legacy deliveries at read time.
+- `v4.41` (2026-07-18): Added named group chats to Matches: a Chats-header creation dialog, match-only invitations, persistent Firestore group records, group list entries, and group message delivery.
+- `v4.42` (2026-07-18): Completed project-context review, including Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google/YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
+- `v4.43` (2026-07-18): Completed and verified group chats in Matches, including the Chats-header creation control, group naming and match selection, protected group creation, persisted group-list entries, and group messaging.
+- `v4.44` (2026-07-18): Moved exact member-ID lookup from Discover into a leftmost navigation search icon and modal search window; Discover is now intentionally empty.
+- `v4.45` (2026-07-18): Restored the Conversations subheading's inline Discover link while retaining the intentionally empty Discover tab.
+- `v4.46` (2026-07-18): Configured Discover for recency-sorted public and eligible matches-only video conversations, with all supported YouTube-category cards, video-title search, and direct room joining. Conversation creation now supports Public/Matches Only audiences and a 30-person total-room cap.
+- `v4.47` (2026-07-18): Completed a project-context review covering Murmur's vision, React/Vite and Express architecture, Firebase/Firestore model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
+- `v4.48` (2026-07-18): Restyled Discover category cards as square, page-toned tiles with a unique new text colour for every category; category-card backgrounds are now intentionally uniform rather than multicoloured.
+- `v4.49` (2026-07-18): Changed Discover's All Conversations label to white and increased category-card label sizes on desktop and mobile.
+- `v4.50` (2026-07-18): Moved Discover category and title-search results into their own routed view with a Back to categories action. Discover now exposes only live public rooms the member has not joined, excluding matches-only and already-joined conversations.
+- `v4.51` (2026-07-18): Added persistent, category-coloured glows to Discover's square category cards and strengthened those glows on hover and keyboard focus.
+- `v4.52` (2026-07-18): Made Discover category-card glows brighter and substantially broader, while increasing responsive card spacing so the square tiles' glows do not overlap.
+- `v4.53` (2026-07-18): Reduced the maximum size and internal padding of Discover's square category tiles while retaining their bright, separated glows.
+- `v4.54` (2026-07-18): Increased Discover category-tile spacing by 50% across desktop, tablet, and mobile layouts.
+- `v4.55` (2026-07-18): Increased Discover category-tile spacing by a further 30% across desktop, tablet, and mobile layouts.
+- `v4.56` (2026-07-18): Changed Discover's All Conversations tile label and glow from pure white to the warm off-white `#FEFCED`.
+- `v4.57` (2026-07-18): Increased the spacing between Discover's category-search area and tile grid by 150%, without changing the separate results view spacing.
+- `v4.58` (2026-07-18): Updated Discover's All Conversations tile label and glow to warm cream `#F5E6D3`.
+- `v4.59` (2026-07-18): Completed a project-context review covering Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
+- `v4.60` (2026-07-18): Softened Discover category-tile glows at rest and on hover/focus while retaining the category colour cues and visible interactive state.
+- `v4.61` (2026-07-18): Increased Discover category-tile glow spread by 25% and inter-tile spacing by 30% across desktop, tablet, and mobile layouts.

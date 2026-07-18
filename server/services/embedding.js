@@ -3,6 +3,23 @@ let extractor = null;
 let extractorPromise = null;
 
 const EMBEDDING_BATCH_SIZE = 16;
+const MATCH_SCORE_SCALE_VERSION = 2;
+
+// The score scale makes strong compatibility feel as strong as it is while
+// preserving every ordering relationship in the underlying match calculation.
+const MATCH_SCORE_SCALE = [
+  [0, 0],
+  [10, 10],
+  [20, 20],
+  [30, 32],
+  [40, 48],
+  [50, 60],
+  [60, 71],
+  [70, 82],
+  [80, 90],
+  [90, 95],
+  [100, 100]
+];
 
 async function getExtractor() {
   if (extractor) return extractor;
@@ -77,6 +94,21 @@ function cosineSimilarity(vecA, vecB) {
 
 
 
+function skewMatchScore(rawScore) {
+  const score = Math.max(0, Math.min(100, Number(rawScore) || 0));
+
+  for (let index = 1; index < MATCH_SCORE_SCALE.length; index++) {
+    const [upperInput, upperOutput] = MATCH_SCORE_SCALE[index];
+    if (score <= upperInput) {
+      const [lowerInput, lowerOutput] = MATCH_SCORE_SCALE[index - 1];
+      const progress = (score - lowerInput) / (upperInput - lowerInput);
+      return Math.round(lowerOutput + progress * (upperOutput - lowerOutput));
+    }
+  }
+
+  return 100;
+}
+
 function computeMatchScore(userA, userB) {
   // 1. Embedding Similarity
   const embSim = cosineSimilarity(userA.embedding || [], userB.embedding || []);
@@ -104,10 +136,13 @@ function computeMatchScore(userA, userB) {
   
   const embeddingScore = Math.round(clampedEmbSim * 100);
   const categoryScore = Math.round(clampedCatSim * 100);
-  const score = Math.round((0.6 * embeddingScore) + (0.4 * categoryScore));
+  const rawScore = Math.round((0.6 * embeddingScore) + (0.4 * categoryScore));
+  const score = skewMatchScore(rawScore);
 
   return {
     score,
+    rawScore,
+    scoreScaleVersion: MATCH_SCORE_SCALE_VERSION,
     embeddingScore,
     categoryScore
   };
@@ -147,6 +182,8 @@ module.exports = {
   generateEmbedding,
   batchEmbed,
   cosineSimilarity,
+  skewMatchScore,
+  MATCH_SCORE_SCALE_VERSION,
   computeMatchScore,
   createUserEmbedding
 };

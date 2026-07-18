@@ -2,12 +2,54 @@ const express = require('express');
 const router = express.Router();
 const { db, FieldValue } = require('../config/firebase');
 
+const MAX_PARTICIPANT_LIMIT = 30;
+
+function toDate(value) {
+  return value?.toDate ? value.toDate() : new Date(value);
+}
+
+function serialiseActivity(id, data) {
+  const expiresAt = toDate(data.expiresAt);
+  const createdAt = toDate(data.createdAt || Date.now());
+  return {
+    id,
+    ...data,
+    expiresAt: Number.isNaN(expiresAt.getTime()) ? null : expiresAt.toISOString(),
+    createdAt: Number.isNaN(createdAt.getTime()) ? new Date().toISOString() : createdAt.toISOString()
+  };
+}
+
+function getParticipantLimit(activity) {
+  // Older conversations stored `limit` as people in addition to the publisher.
+  return Number.isInteger(activity.participantLimit)
+    ? activity.participantLimit
+    : Number(activity.limit || 0) + 1;
+}
+
+async function getMatchUserIds(userId) {
+  const matchesSnapshot = await db.collection('matches').where('users', 'array-contains', userId).get();
+  const matchIds = new Set();
+  matchesSnapshot.forEach(doc => {
+    const otherId = (doc.data().users || []).find(id => id !== userId);
+    if (otherId) matchIds.add(otherId);
+  });
+  return matchIds;
+}
+
 router.post('/create', async (req, res) => {
   try {
-    const { publisherId, video, limit, expiresInHours } = req.body;
+    const { publisherId, video, participantLimit, expiresInHours, audience = 'matches' } = req.body;
+    const totalParticipantLimit = parseInt(participantLimit, 10);
     
-    if (!publisherId || !video || !limit || !expiresInHours) {
+    if (!publisherId || !video || !totalParticipantLimit || !expiresInHours) {
       return res.status(400).json({ error: 'Missing required activity fields' });
+    }
+
+    if (!video.id || !video.title || totalParticipantLimit < 2 || totalParticipantLimit > MAX_PARTICIPANT_LIMIT) {
+      return res.status(400).json({ error: `Conversations must allow between 2 and ${MAX_PARTICIPANT_LIMIT} people.` });
+    }
+    if (!['public', 'matches'].includes(audience)) {
+      return res.status(400).json({ error: 'Choose who can participate in this conversation.' });
     }
 
     if (!db) {
@@ -26,7 +68,12 @@ router.post('/create', async (req, res) => {
       publisherId,
       publisherName,
       video, // { id, title, channelTitle, thumbnailUrl }
-      limit: parseInt(limit, 10),
+      // Retain the legacy limit field for old clients, but make new rooms use
+      // an explicit total capacity that includes the publisher.
+      limit: totalParticipantLimit - 1,
+      participantLimit: totalParticipantLimit,
+      audience,
+      videoTitleLower: video.title.toLowerCase(),
       expiresAt: expiresAt,
       createdAt: FieldValue.serverTimestamp(),
       participants: [publisherId], // Publisher is always in the room
@@ -55,19 +102,7 @@ router.get('/', async (req, res) => {
       return res.status(503).json({ error: 'Database not configured' });
     }
 
-    // First, find the user's matches from the database
-    // We look in 'matches' collection where the user is one of the pair
-    const matchesSnapshot = await db.collection('matches')
-      .where('users', 'array-contains', userId)
-      .get();
-      
-    // Collect all match user IDs
-    const matchIds = new Set();
-    matchesSnapshot.forEach(doc => {
-      const { users } = doc.data();
-      const otherId = users.find(id => id !== userId);
-      if (otherId) matchIds.add(otherId);
-    });
+    const matchIds = await getMatchUserIds(userId);
 
     // Also include the user's own activities so they can see/manage them
     matchIds.add(userId);
@@ -89,7 +124,7 @@ router.get('/', async (req, res) => {
     const chunks = chunkArray(validPublisherIds, 10);
     const now = new Date();
     
-    let allActivities = [];
+    const activityById = new Map();
     
     for (const chunk of chunks) {
       const activitiesSnapshot = await db.collection('activities')
@@ -98,18 +133,23 @@ router.get('/', async (req, res) => {
         
       activitiesSnapshot.forEach(doc => {
         const data = doc.data();
-        const expiresAtDate = data.expiresAt?.toDate ? data.expiresAt.toDate() : new Date(data.expiresAt);
+        const expiresAtDate = toDate(data.expiresAt);
         
         if (expiresAtDate > now) {
-          allActivities.push({
-            id: doc.id,
-            ...data,
-            expiresAt: expiresAtDate.toISOString(),
-            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date(data.createdAt || Date.now()).toISOString()
-          });
+          activityById.set(doc.id, serialiseActivity(doc.id, data));
         }
       });
     }
+
+    // Conversations discovered and joined by the member must remain visible,
+    // even when their creator is not one of the member's matches.
+    const joinedSnapshot = await db.collection('activities').where('participants', 'array-contains', userId).get();
+    joinedSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (toDate(data.expiresAt) > now) activityById.set(doc.id, serialiseActivity(doc.id, data));
+    });
+
+    const allActivities = [...activityById.values()];
 
     // Sort all by recency (newest first)
     allActivities.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -120,6 +160,41 @@ router.get('/', async (req, res) => {
     // If the index is missing, Firestore will throw an error with a URL to create it.
     console.error('Error fetching activities:', error);
     res.status(500).json({ error: 'Failed to fetch activities. Check Firestore indexes.' });
+  }
+});
+
+// Discover public, live conversations the member has not yet joined, filtered
+// by YouTube category or video title. Firestore does not support portable
+// case-insensitive substring search, so the MVP filters active rooms server-side.
+router.get('/discover', async (req, res) => {
+  try {
+    const { userId, categoryId, q = '' } = req.query;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    if (!db) return res.status(503).json({ error: 'Database not configured' });
+
+    const snapshot = await db.collection('activities').get();
+    const query = String(q).trim().toLowerCase();
+    const selectedCategoryId = String(categoryId || 'all');
+    const activities = snapshot.docs
+      .map(doc => ({ id: doc.id, ...doc.data() }))
+      .filter(activity => {
+        const expiresAt = toDate(activity.expiresAt);
+        const participants = activity.participants || [];
+        return activity.audience === 'public'
+          && !participants.includes(userId)
+          && !Number.isNaN(expiresAt.getTime())
+          && expiresAt > new Date()
+          && participants.length < getParticipantLimit(activity);
+      })
+      .filter(activity => selectedCategoryId === 'all' || String(activity.video?.categoryId || '') === selectedCategoryId)
+      .filter(activity => !query || String(activity.video?.title || '').toLowerCase().includes(query))
+      .map(activity => serialiseActivity(activity.id, activity))
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    return res.json({ activities });
+  } catch (error) {
+    console.error('Error discovering activities:', error);
+    return res.status(500).json({ error: 'Could not load discover conversations.' });
   }
 });
 
@@ -136,6 +211,7 @@ router.post('/:activityId/join', async (req, res) => {
       return res.status(503).json({ error: 'Database not configured' });
     }
 
+    const matchIds = await getMatchUserIds(userId);
     const activityRef = db.collection('activities').doc(activityId);
     
     // Use a transaction to safely check limit and join
@@ -158,9 +234,11 @@ router.post('/:activityId/join', async (req, res) => {
         return { success: true, message: 'Already joined' };
       }
 
-      // Limit excludes the publisher.
-      // E.g., Limit 2 means 1 publisher + 2 participants = 3 max users in the room.
-      if (participants.length >= data.limit + 1) {
+      if (data.audience !== 'public' && !matchIds.has(data.publisherId)) {
+        throw new Error('Only matches of the creator can join this conversation');
+      }
+
+      if (participants.length >= getParticipantLimit(data)) {
         throw new Error('This conversation has reached its participant limit');
       }
 
@@ -184,8 +262,9 @@ router.post('/:activityId/send', async (req, res) => {
   try {
     const { activityId } = req.params;
     const { senderId, text } = req.body;
+    const messageText = String(text || '').trim();
     
-    if (!senderId || !text) {
+    if (!senderId || !messageText) {
       return res.status(400).json({ error: 'Missing required chat fields' });
     }
 
@@ -193,13 +272,18 @@ router.post('/:activityId/send', async (req, res) => {
       return res.status(500).json({ error: 'Database not configured' });
     }
 
+    const activityRef = db.collection('activities').doc(activityId);
+    const activityDoc = await activityRef.get();
+    if (!activityDoc.exists) return res.status(404).json({ error: 'Activity not found' });
+    if (!(activityDoc.data().participants || []).includes(senderId)) {
+      return res.status(403).json({ error: 'Join this conversation before sending a message.' });
+    }
+
     const messageData = {
       senderId,
-      text,
+      text: messageText,
       createdAt: FieldValue.serverTimestamp()
     };
-
-    const activityRef = db.collection('activities').doc(activityId);
     
     // Write message to subcollection
     await activityRef.collection('messages').add(messageData);

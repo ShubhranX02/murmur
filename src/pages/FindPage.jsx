@@ -1,15 +1,35 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import './DashboardPage.css';
+import { CATEGORY_MAP } from '../config/categories';
+import LoadingSpinner from '../components/LoadingSpinner';
+import './FindPage.css';
+
+const CATEGORY_COLOURS = ['#ffb703', '#fb8500', '#e76f51', '#e9c46a', '#f4a261', '#ef476f', '#d65db1', '#9b5de5', '#5e60ce', '#4895ef', '#00b4d8', '#06d6a0', '#80ed99', '#b8f2e6', '#caffbf', '#ffd6a5'];
 
 function FindPage() {
   const { user, isAuthenticated, isOnboarded } = useAuth();
   const navigate = useNavigate();
+  const { categoryId } = useParams();
+  const [searchParams] = useSearchParams();
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-  const [userId, setUserId] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('q') || '');
+  const [activities, setActivities] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
+  const [joiningId, setJoiningId] = useState(null);
+
+  const categories = useMemo(() => [
+    { id: 'all', name: 'All Conversations', colour: '#F5E6D3' },
+    ...Object.entries(CATEGORY_MAP).map(([id, name], index) => ({ id, name, colour: CATEGORY_COLOURS[index + 1] }))
+  ], []);
+  const isResultsView = Boolean(categoryId);
+  const selectedCategory = categories.some(category => category.id === categoryId) ? categoryId : 'all';
+  const selectedCategoryName = categories.find(category => category.id === selectedCategory)?.name || 'All Conversations';
+
+  useEffect(() => {
+    setSearch(searchParams.get('q') || '');
+  }, [categoryId, searchParams]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -19,49 +39,126 @@ function FindPage() {
     }
   }, [isAuthenticated, isOnboarded, navigate, user?.detailsComplete]);
 
-  const handleSubmit = async event => {
-    event.preventDefault();
-    const query = userId.trim();
-    if (!query) {
-      setError('No such user exists');
-      return;
-    }
+  useEffect(() => {
+    if (!user?.id || !isResultsView) return undefined;
 
-    setError('');
-    setIsSearching(true);
-    try {
-      const response = await fetch(`${apiUrl}/api/auth/profile/${encodeURIComponent(query)}`);
-      if (!response.ok) {
-        setError('No such user exists');
-        return;
+    const controller = new AbortController();
+    const loadDiscoverResults = async () => {
+      setIsLoading(true);
+      setError('');
+      try {
+        const params = new URLSearchParams({ userId: user.id, categoryId: selectedCategory });
+        if (search.trim()) params.set('q', search.trim());
+        const response = await fetch(`${apiUrl}/api/activities/discover?${params.toString()}`, { signal: controller.signal });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Could not load conversations.');
+        setActivities(data.activities || []);
+      } catch (loadError) {
+        if (loadError.name !== 'AbortError') setError(loadError.message || 'Could not load conversations.');
+      } finally {
+        if (!controller.signal.aborted) setIsLoading(false);
       }
-      navigate(`/profile/${encodeURIComponent(query)}`);
-    } catch {
-      setError('No such user exists');
-    } finally {
-      setIsSearching(false);
+    };
+
+    const timer = window.setTimeout(loadDiscoverResults, search.trim() ? 250 : 0);
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [apiUrl, isResultsView, search, selectedCategory, user?.id]);
+
+  const selectCategory = categoryId => {
+    navigate(`/find/${categoryId}`);
+  };
+
+  const openSearchResults = event => {
+    event.preventDefault();
+    const query = search.trim();
+    if (query) navigate(`/find/all?q=${encodeURIComponent(query)}`);
+  };
+
+  const joinConversation = async activityId => {
+    setJoiningId(activityId);
+    try {
+      const response = await fetch(`${apiUrl}/api/activities/${activityId}/join`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not join this conversation.');
+      navigate(`/activity/${activityId}`);
+    } catch (joinError) {
+      setError(joinError.message || 'Could not join this conversation.');
+      setJoiningId(null);
     }
   };
 
   if (!isAuthenticated || !isOnboarded || !user?.detailsComplete) return null;
 
   return (
-    <div className="find-page animate-fade-in-up">
-      <h1>Discover</h1>
-      <form className="find-form" onSubmit={handleSubmit}>
-        <label>
-          Search by User ID
-          <input
-            value={userId}
-            onChange={event => setUserId(event.target.value)}
-            placeholder="Enter a Murmur user ID"
-            autoComplete="off"
-            aria-describedby={error ? 'find-error' : undefined}
-          />
-        </label>
-      </form>
-      {isSearching && <p className="find-error">Searching…</p>}
-      {error && <p className="find-error" id="find-error" role="alert">{error}</p>}
+    <div className="discover-page animate-fade-in-up">
+      {isResultsView ? (
+        <>
+          <header className="discover-header discover-results-header">
+            <button type="button" className="btn-secondary discover-back-button" onClick={() => navigate('/find')}>← Back to categories</button>
+            <h1>{selectedCategoryName}</h1>
+            <p>Browse public conversations you have not joined yet.</p>
+            <form className="discover-search-form" onSubmit={event => event.preventDefault()}>
+              <label className="discover-search-field">
+                <span>Search this category by video title</span>
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search for a video title" autoComplete="off" />
+              </label>
+            </form>
+          </header>
+        <section className="discover-results" aria-live="polite">
+          <div className="discover-results-heading">
+            <h2>{search.trim() ? `Results for “${search.trim()}”` : selectedCategoryName}</h2>
+            <span>Newest first</span>
+          </div>
+          {isLoading ? <div className="discover-loading"><LoadingSpinner /></div> : error ? <div className="discover-error glass" role="alert">{error}</div> : activities.length === 0 ? <div className="discover-empty glass">No joinable conversations found yet.</div> : (
+            <div className="discover-conversation-list">
+              {activities.map(activity => {
+                const participantLimit = activity.participantLimit || activity.limit + 1;
+                return (
+                  <article className="discover-conversation-item glass" key={activity.id}>
+                    {activity.video?.thumbnailUrl ? <img className="discover-video-thumbnail" src={activity.video.thumbnailUrl} alt="" /> : <div className="discover-video-placeholder">▶</div>}
+                    <div className="discover-conversation-details">
+                      <h3 title={activity.video?.title}>{activity.video?.title || 'Untitled video'}</h3>
+                      <p>{activity.video?.channelTitle || 'Unknown creator'}</p>
+                      <div><span>{activity.publisherName || 'Murmur member'}</span><span>{activity.participants?.length || 1} / {participantLimit} people</span><span>{activity.audience === 'public' ? 'Public' : 'Matches Only'}</span></div>
+                    </div>
+                    <button type="button" className="btn-primary discover-join-button" onClick={() => joinConversation(activity.id)} disabled={joiningId === activity.id}>{joiningId === activity.id ? 'Joining…' : 'Join'}</button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+        </>
+      ) : (
+        <>
+          <header className="discover-header discover-category-header">
+            <h1>Discover</h1>
+            <p>Find live conversations around the videos and topics you care about.</p>
+            <form className="discover-search-form" onSubmit={openSearchResults}>
+              <label className="discover-search-field">
+                <span>Search conversations by video title</span>
+                <input value={search} onChange={event => setSearch(event.target.value)} placeholder="Search for a video title" autoComplete="off" />
+              </label>
+              <button type="submit" className="btn-secondary discover-search-button" disabled={!search.trim()}>Search</button>
+            </form>
+          </header>
+
+          <section className="discover-category-grid" aria-label="Conversation categories">
+            {categories.map(category => (
+              <button key={category.id} type="button" className="discover-category-card" style={{ '--category-colour': category.colour }} onClick={() => selectCategory(category.id)}>
+                {category.name}
+              </button>
+            ))}
+          </section>
+        </>
+      )}
     </div>
   );
 }

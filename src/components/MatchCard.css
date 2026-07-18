@@ -43,6 +43,21 @@
   background: rgba(229, 57, 53, 0.15);
 }
 
+.match-list-item.is-group {
+  grid-template-columns: 58px minmax(0, 1fr) auto;
+}
+
+.match-group-avatar {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  position: relative;
+  border-radius: 50%;
+  background: rgba(229, 57, 53, 0.18);
+  font-size: 25px;
+}
+
 .match-avatar-container {
   width: 58px;
   height: 58px;
@@ -94,6 +109,18 @@
 
 .match-score-wrapper {
   position: relative;
+}
+
+.group-member-count,
+.group-chat-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.group-chat-label {
+  padding: 5px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 .match-profile-link {
@@ -188,6 +215,11 @@
   }
 
   .match-avatar-container {
+    width: 48px;
+    height: 48px;
+  }
+
+  .match-group-avatar {
     width: 48px;
     height: 48px;
   }

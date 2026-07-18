@@ -150,6 +150,23 @@ function OnboardingPage() {
     tokenClient.requestAccessToken();
   };
 
+  const handleSkipYouTubeRefresh = async () => {
+    setError(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/auth/youtube-refresh/skip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not continue without refreshing YouTube.');
+      updateUser({ youtubeRefreshSkipped: true, requiresYouTubeRefresh: false });
+      navigate('/dashboard', { replace: true });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const computeMatches = async (youtubeData) => {
     setAnalysisStage(2);
     const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
@@ -304,6 +321,11 @@ function OnboardingPage() {
             <button className="btn-primary btn-youtube" onClick={handleConnectYouTube}>
               <span className="icon-yt">▶</span> {user.onboarded ? 'Reconnect YouTube for latest data' : 'Connect YouTube'}
             </button>
+            {user.onboarded && user.requiresYouTubeRefresh && (
+              <button className="btn-secondary onboarding-skip-refresh" onClick={handleSkipYouTubeRefresh}>
+                Continue with saved taste profile
+              </button>
+            )}
           </div>
         )}
 

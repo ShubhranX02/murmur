@@ -40,7 +40,13 @@ function getPublicProfile(userId, data) {
     displayName: data.displayName || 'Murmur member',
     photoURL: data.photoURL || null,
     profileDetails: data.profileDetails || null,
-    onboarded: Boolean(data.onboarded)
+    onboarded: Boolean(data.onboarded),
+    // These aggregate taste insights are intentionally shareable on member
+    // profiles. Raw liked videos, subscriptions, email, and embeddings stay private.
+    youtubeData: {
+      likedVideoCount: Number(data.youtubeData?.likedVideoCount) || 0
+    },
+    categoryDistribution: data.categoryDistribution || {}
   };
 }
 
@@ -143,7 +149,7 @@ router.post('/google', async (req, res) => {
           userObj.onboarded = docData.onboarded || false;
           userObj.detailsComplete = docData.detailsComplete || false;
           userObj.youtubeData = serialiseYoutubeData(docData.youtubeData);
-          userObj.requiresYouTubeRefresh = needsYoutubeRefresh(docData);
+          userObj.requiresYouTubeRefresh = needsYoutubeRefresh(docData) && !docData.youtubeRefreshSkipped;
         }
 
         await userRef.set(updateData, { merge: true });
@@ -152,7 +158,7 @@ router.post('/google', async (req, res) => {
       console.warn('Firestore not configured or failed, proceeding with in-memory user', dbError);
     }
 
-    userObj.requiresYouTubeRefresh = userObj.requiresYouTubeRefresh ?? needsYoutubeRefresh(userObj);
+    userObj.requiresYouTubeRefresh = userObj.requiresYouTubeRefresh ?? (needsYoutubeRefresh(userObj) && !userObj.youtubeRefreshSkipped);
     userObj.youtubeData = serialiseYoutubeData(userObj.youtubeData);
 
     res.json({ user: userObj });
@@ -207,6 +213,26 @@ router.patch('/profile/:userId', async (req, res) => {
   } catch (error) {
     console.error('Profile update error:', error);
     return res.status(500).json({ error: 'Could not save your profile details.' });
+  }
+});
+
+// A returning member can keep using Murmur with their last saved taste profile
+// when they choose not to refresh YouTube after the seven-day reminder.
+router.post('/youtube-refresh/skip', async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    if (!db) return profileUnavailable(res);
+
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) return res.status(404).json({ error: 'This profile could not be found.' });
+
+    await userRef.set({ youtubeRefreshSkipped: true, updatedAt: new Date() }, { merge: true });
+    return res.json({ success: true, user: { youtubeRefreshSkipped: true, requiresYouTubeRefresh: false } });
+  } catch (error) {
+    console.error('YouTube refresh skip error:', error);
+    return res.status(500).json({ error: 'Could not continue without refreshing YouTube.' });
   }
 });
 

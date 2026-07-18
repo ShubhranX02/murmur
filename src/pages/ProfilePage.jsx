@@ -37,6 +37,8 @@ function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [matchScore, setMatchScore] = useState(null);
+  const [isMatched, setIsMatched] = useState(false);
+  const [isAddingMatch, setIsAddingMatch] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -49,6 +51,7 @@ function ProfilePage() {
       setLoading(true);
       setError(null);
       setMatchScore(null);
+      setIsMatched(false);
       try {
         const response = await fetch(`${apiUrl}/api/auth/profile/${targetUserId}`);
         const data = await response.json().catch(() => ({}));
@@ -61,7 +64,10 @@ function ProfilePage() {
           try {
             const scoreResponse = await fetch(`${apiUrl}/api/matches/${user.id}/${targetUserId}`);
             const scoreData = await scoreResponse.json().catch(() => ({}));
-            if (active && scoreResponse.ok) setMatchScore(scoreData.match?.score ?? null);
+            if (active && scoreResponse.ok) {
+              setMatchScore(scoreData.match?.score ?? null);
+              setIsMatched(Boolean(scoreData.match?.isMatched));
+            }
           } catch (scoreError) {
             console.warn('Could not load match score', scoreError);
           }
@@ -75,7 +81,9 @@ function ProfilePage() {
             displayName: user.displayName,
             photoURL: user.photoURL,
             profileDetails: user.profileDetails || null,
-            onboarded: user.onboarded
+            onboarded: user.onboarded,
+            youtubeData: user.youtubeData || null,
+            categoryDistribution: user.categoryDistribution || {}
           };
           setProfile(fallback);
           setFormDetails(toFormDetails(fallback.profileDetails));
@@ -135,6 +143,26 @@ function ProfilePage() {
     }
   };
 
+  const handleAddMatch = async () => {
+    setIsAddingMatch(true);
+    setError(null);
+    try {
+      const response = await fetch(`${apiUrl}/api/matches/add`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, otherUserId: profile.id })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not add this member to your matches.');
+      setMatchScore(data.match?.score ?? matchScore);
+      setIsMatched(true);
+    } catch (addError) {
+      setError(addError.message || 'Could not add this member to your matches.');
+    } finally {
+      setIsAddingMatch(false);
+    }
+  };
+
   if (!user || loading) {
     return <div className="profile-loading"><LoadingSpinner size="large" text="Loading profile..." /></div>;
   }
@@ -147,7 +175,8 @@ function ProfilePage() {
     );
   }
 
-  const topCategories = user.youtubeData?.topCategories || [];
+  const viewedYoutubeData = profile.youtubeData || (isOwnProfile ? user.youtubeData : null);
+  const viewedCategoryDistribution = profile.categoryDistribution || (isOwnProfile ? user.categoryDistribution : null);
   const location = profile.profileDetails?.location;
   const descriptionWords = formDetails.description.trim() ? formDetails.description.trim().split(/\s+/).length : 0;
 
@@ -165,9 +194,13 @@ function ProfilePage() {
           <p className="profile-member-id">Member ID: {profile.id}</p>
           {!isOwnProfile && <MatchScore score={matchScore} className="match-score-info--profile" />}
           {!isOwnProfile && (
-            <button className="btn-primary profile-message-button" onClick={() => navigate(`/matches/${profile.id}`)}>
-              Message
-            </button>
+            isMatched ? (
+              <button className="btn-primary profile-message-button" onClick={() => navigate(`/matches/${profile.id}`)}>Message</button>
+            ) : (
+              <button className="btn-primary profile-message-button" onClick={handleAddMatch} disabled={isAddingMatch}>
+                {isAddingMatch ? 'Adding…' : 'Add to matches'}
+              </button>
+            )
           )}
         </div>
 
@@ -211,15 +244,15 @@ function ProfilePage() {
           )}
         </section>
 
-        {isOwnProfile && user.onboarded ? (
+        {profile.onboarded ? (
           <>
             <div className="stats-grid">
-              <div className="stat-card glass"><span className="stat-icon">🎬</span><span className="stat-value">{user.youtubeData?.likedVideoCount || 0}</span><span className="stat-label">Liked Videos Analyzed</span></div>
-              <div className="stat-card glass"><span className="stat-icon">📺</span><span className="stat-value">{Object.keys(user.categoryDistribution || {}).length}</span><span className="stat-label">Categories Analysed</span></div>
+              <div className="stat-card glass"><span className="stat-icon">🎬</span><span className="stat-value">{viewedYoutubeData?.likedVideoCount || 0}</span><span className="stat-label">Liked Videos Analyzed</span></div>
+              <div className="stat-card glass"><span className="stat-icon">📺</span><span className="stat-value">{Object.keys(viewedCategoryDistribution || {}).length}</span><span className="stat-label">Categories Analysed</span></div>
             </div>
             <div className="categories-section glass">
-              <h3>Your Categories</h3>
-              <CategoryRingChart distribution={user.categoryDistribution} />
+              <h3>{isOwnProfile ? 'Your Categories' : `${profile.displayName}'s Categories`}</h3>
+              <CategoryRingChart distribution={viewedCategoryDistribution} />
             </div>
           </>
         ) : isOwnProfile ? (

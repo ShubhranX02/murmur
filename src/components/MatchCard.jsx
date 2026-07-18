@@ -7,6 +7,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+  const isGroup = Boolean(match.isGroup);
   const matchedUserId = match.otherUserId || match.userId;
 
   useEffect(() => {
@@ -50,39 +51,49 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
   
   return (
     <article
-      className={`match-list-item glass animate-fade-in-up ${match.hasUnreadMessages ? 'has-unread' : ''} ${!match.hasStartedConversation ? 'not-yet-talked' : ''} ${isSelected ? 'is-selected' : ''}`}
+      className={`match-list-item glass animate-fade-in-up ${isGroup ? 'is-group' : ''} ${match.hasUnreadMessages ? 'has-unread' : ''} ${!match.hasStartedConversation ? 'not-yet-talked' : ''} ${isSelected ? 'is-selected' : ''}`}
       style={{ animationDelay: delay }}
       role="button"
       tabIndex="0"
-      aria-label={`Open chat with ${match.displayName}, ${match.score}% match`}
+      aria-label={isGroup ? `Open group chat ${match.displayName}` : `Open chat with ${match.displayName}, ${match.score}% match`}
       onClick={openChat}
       onKeyDown={handleKeyDown}
     >
-      <button type="button" className="match-profile-link" onClick={openProfile} aria-label={`View ${match.displayName}'s profile`}>
-      <div className="match-avatar-container">
-        <img
-          src={match.photoURL || '/default-avatar.png'}
-          alt={match.displayName}
-          className="match-avatar"
-        />
-        {match.hasUnreadMessages && <span className="unread-dot" aria-label="New message" />}
-      </div>
+      {isGroup ? (
+        <>
+          <div className="match-group-avatar" aria-hidden="true">👥{match.hasUnreadMessages && <span className="unread-dot" aria-label="New message" />}</div>
+          <div className="match-person">
+            <h3 className="match-name">{match.displayName}</h3>
+            <span className="group-member-count">{match.memberCount} member{match.memberCount === 1 ? '' : 's'}</span>
+            {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
+          </div>
+        </>
+      ) : (
+        <button type="button" className="match-profile-link" onClick={openProfile} aria-label={`View ${match.displayName}'s profile`}>
+          <div className="match-avatar-container">
+            <img src={match.photoURL || '/default-avatar.png'} alt={match.displayName} className="match-avatar" />
+            {match.hasUnreadMessages && <span className="unread-dot" aria-label="New message" />}
+          </div>
+          <div className="match-person">
+            <h3 className="match-name">
+              {match.isPinned && <span className="pin-icon" title="Pinned chat">📌 </span>}
+              {match.displayName}
+              {match.isMuted && <span className="mute-icon" title="Muted notifications"> 🔕</span>}
+            </h3>
+            {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
+          </div>
+        </button>
+      )}
 
-      <div className="match-person">
-        <h3 className="match-name">
-          {match.isPinned && <span className="pin-icon" title="Pinned chat">📌 </span>}
-          {match.displayName}
-          {match.isMuted && <span className="mute-icon" title="Muted notifications"> 🔕</span>}
-        </h3>
-        {match.hasUnreadMessages && <span className="new-message-label">New message</span>}
-      </div>
-      </button>
-      
-      <div className="match-score-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
-        <MatchScore score={match.score} className="match-score-info--list" />
-      </div>
+      {isGroup ? (
+        <span className="group-chat-label">Group</span>
+      ) : (
+        <div className="match-score-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
+          <MatchScore score={match.score} className="match-score-info--list" />
+        </div>
+      )}
 
-      <div ref={menuRef} className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
+      {!isGroup && <div ref={menuRef} className="match-menu-wrapper" onClick={preventChatOpen} onKeyDown={preventChatOpen}>
         <button
           type="button"
           className="match-menu-trigger"
@@ -106,7 +117,7 @@ function MatchCard({ match, delay = '0s', onSelect, isSelected = false, onAction
             ))}
           </div>
         )}
-      </div>
+      </div>}
       
     </article>
   );

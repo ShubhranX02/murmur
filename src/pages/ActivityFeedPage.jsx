@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './ActivityFeedPage.css';
@@ -57,7 +57,12 @@ function ActivityFeedPage() {
   return (
     <div className="activity-page animate-fade-in-up">
       <div className="activity-header">
-        <h1>Activity</h1>
+        <div>
+          <h1>Conversations</h1>
+          <p className="activity-subheading">
+            Here you can see the conversations started by your matches and the conversations you joined from <Link to="/find">Discover</Link>
+          </p>
+        </div>
         <button className="btn-primary start-convo-btn" onClick={() => navigate('/activity/create')}>
           <span className="plus-icon">+</span> Start Conversation
         </button>
@@ -70,12 +75,13 @@ function ActivityFeedPage() {
           <div className="activity-error glass">{error}</div>
         ) : activities.length === 0 ? (
           <div className="activity-empty glass">
-            <p>There is no ongoing conversations. Start one!</p>
+            <p>There are no ongoing conversations. Start one!</p>
           </div>
         ) : (
           <div className="activity-grid">
             {activities.map((act) => {
-              const isFull = act.participants?.length >= act.limit + 1;
+              const participantLimit = act.participantLimit || act.limit + 1;
+              const isFull = act.participants?.length >= participantLimit;
               const hasJoined = act.participants?.includes(user.id);
               
               return (
@@ -97,7 +103,7 @@ function ActivityFeedPage() {
                     <div className="activity-meta">
                       <span className="activity-publisher">Started by {act.publisherId === user.id ? 'You' : act.publisherName}</span>
                       <span className={`activity-participants ${isFull ? 'text-danger' : ''}`}>
-                        {act.participants?.length || 1} / {act.limit + 1} Joined
+                        {act.participants?.length || 1} / {participantLimit} Joined
                       </span>
                     </div>
                   </div>

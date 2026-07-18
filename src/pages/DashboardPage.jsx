@@ -70,6 +70,7 @@ function DashboardPage() {
         <section className="dashboard-card dashboard-content-card glass">
           <h2>Discover public conversations</h2>
           <p>Join conversations published by all users of Murmur about any category that you are interested in.</p>
+          <Link to="/find" className="dashboard-content-link">Discover Conversations →</Link>
         </section>
         <section className="dashboard-card dashboard-content-card glass">
           <h2>Shared interests, endless gossip</h2>

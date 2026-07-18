@@ -41,9 +41,10 @@
   font: inherit;
   font-size: 22px;
   font-weight: 700;
+  letter-spacing: -0.015em;
   line-height: 1.3;
   text-align: center;
-  text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000, 0 0 12px var(--category-colour), 0 0 24px color-mix(in srgb, var(--category-colour), transparent 30%);
+  text-shadow: 0 2px 3px rgba(0, 0, 0, 0.72), 0 0 10px color-mix(in srgb, var(--category-colour), transparent 38%), 0 0 20px color-mix(in srgb, var(--category-colour), transparent 68%);
   box-shadow: 0 0 30px color-mix(in srgb, var(--category-colour), transparent 55%), 0 0 56px color-mix(in srgb, var(--category-colour), transparent 78%);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }

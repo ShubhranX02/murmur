@@ -288,8 +288,9 @@
 }
 
 .algorithm-icon {
-  width: min(58%, 250px);
-  height: auto;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 20px;
 }
 
 .configuration-icon {
@@ -318,19 +319,6 @@
   font-size: 15px;
   line-height: 1.6;
   max-width: 380px;
-}
-
-.algorithm-coming-soon-badge {
-  margin-top: 30px;
-  padding: 6px 16px;
-  border-radius: var(--radius-full);
-  background: rgba(229, 57, 53, 0.15);
-  border: 1px solid rgba(229, 57, 53, 0.3);
-  color: var(--primary-light);
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 /* Mobile responsive layout */

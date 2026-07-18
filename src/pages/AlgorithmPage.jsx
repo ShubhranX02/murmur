@@ -24,14 +24,17 @@ function AlgorithmPage() {
       <h1>The Algorithm</h1>
       <div className="algorithm-container">
         <div className="algorithm-column left glass">
-          <img src={algorithmIcon} alt="Algorithm network" className="algorithm-icon" />
+          <div className="algorithm-placeholder-content">
+            <img src={algorithmIcon} alt="Algorithm network" className="algorithm-icon" />
+            <h3>Your Content Vibe</h3>
+            <p>We analyze your 50 most recent liked videos to capture your current interests and viewing patterns. By identifying recurring themes, creators, and content styles, we build a dynamic snapshot of what you&apos;re actively enjoying right now.</p>
+          </div>
         </div>
         <div className="algorithm-column right glass">
           <div className="algorithm-placeholder-content">
             <img src={configurationIcon} alt="Configuration controls" className="configuration-icon" />
             <h3>Category Compatibility</h3>
             <p>We analyze the distribution of YouTube categories in your liked videos and subscriptions, correlating your vibe across standard genres like Music, Gaming, Tech, and more to calculate a multi-dimensional affinity score.</p>
-            <div className="algorithm-coming-soon-badge">Coming Soon</div>
           </div>
         </div>
       </div>

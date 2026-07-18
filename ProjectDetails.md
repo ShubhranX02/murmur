@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.68` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.69`, `4.70`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.69` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.70`, `4.71`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -568,3 +568,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.66` (2026-07-18): Replaced The Algorithm tab's Your Location and Age description with the requested proximity, shared-life-stage, and offline-connection messaging.
 - `v4.67` (2026-07-18): Replaced the Dashboard's remaining card with the requested Discover public conversations heading and description, and swapped that card's position with the Your Profile card.
 - `v4.68` (2026-07-18): Added a Discover Conversations link from the Dashboard's Discover public conversations card to the Discover tab.
+- `v4.69` (2026-07-18): Added soft white text shadows to all Discover category-tile labels and increased their category-coloured glow spread at rest and on hover/focus.

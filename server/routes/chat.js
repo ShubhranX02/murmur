@@ -6,6 +6,15 @@ function serialiseChatTimestamp(value) {
   return value?.toDate ? value.toDate().toISOString() : null;
 }
 
+function serialiseMessage(doc) {
+  const data = doc.data();
+  return {
+    id: doc.id,
+    ...data,
+    createdAt: serialiseChatTimestamp(data.createdAt) || new Date().toISOString()
+  };
+}
+
 router.post('/groups', async (req, res) => {
   try {
     const { creatorId, name, memberIds = [] } = req.body;
@@ -94,8 +103,11 @@ router.get('/groups/:userId', async (req, res) => {
 
 router.post('/send', async (req, res) => {
   try {
-    const { chatId, senderId, text, replyTo } = req.body;
+    const { chatId, senderId, text, replyTo, clientMessageId } = req.body;
     const messageText = typeof text === 'string' ? text.trim() : '';
+    const safeClientMessageId = typeof clientMessageId === 'string' && clientMessageId.length <= 128
+      ? clientMessageId
+      : null;
     
     if (!chatId || !senderId || !messageText) {
       return res.status(400).json({ error: 'Missing required chat fields' });
@@ -132,6 +144,20 @@ router.post('/send', async (req, res) => {
     if (existingChat.exists && existingChat.data().isGroup && !users.includes(senderId)) {
       return res.status(403).json({ error: 'You are not a member of this group.' });
     }
+
+    // A retried request keeps the original client ID, making delivery safe when
+    // a browser loses the first server response after the message was written.
+    if (safeClientMessageId) {
+      const existingMessage = await chatRef.collection('messages')
+        .where('clientMessageId', '==', safeClientMessageId)
+        .limit(1)
+        .get();
+      if (!existingMessage.empty) {
+        return res.json({ success: true, message: serialiseMessage(existingMessage.docs[0]) });
+      }
+    }
+
+    if (safeClientMessageId) messageData.clientMessageId = safeClientMessageId;
     
     // Write message to subcollection
     const messageRef = await chatRef.collection('messages').add(messageData);
@@ -152,6 +178,7 @@ router.post('/send', async (req, res) => {
         senderId,
         text: messageText,
         createdAt: new Date().toISOString(),
+        ...(safeClientMessageId ? { clientMessageId: safeClientMessageId } : {}),
         ...(replyContext ? { replyTo: replyContext } : {})
       }
     });
@@ -201,15 +228,7 @@ router.get('/:chatId/messages', async (req, res) => {
       .limit(100)
       .get();
 
-    const messages = [];
-    messagesSnapshot.forEach(doc => {
-      const data = doc.data();
-      messages.push({
-        id: doc.id,
-        ...data,
-        createdAt: data.createdAt ? data.createdAt.toDate().toISOString() : new Date().toISOString()
-      });
-    });
+    const messages = messagesSnapshot.docs.map(serialiseMessage);
 
     res.json({ messages });
 

@@ -1,6 +1,6 @@
 import './ChatBubble.css';
 
-function ChatBubble({ message, isSent, senderPhoto, showAvatar, onDoubleClick }) {
+function ChatBubble({ message, isSent, senderPhoto, showAvatar, onDoubleClick, onRetry }) {
   // Format time (e.g. 14:30)
   const timeString = new Date(message.createdAt).toLocaleTimeString([], { 
     hour: '2-digit', 
@@ -37,6 +37,9 @@ function ChatBubble({ message, isSent, senderPhoto, showAvatar, onDoubleClick })
         </p>
         <div className="message-meta-row">
           {message.edited && <span className="edited-label">edited</span>}
+          {message.deliveryState === 'sending' && <span className="delivery-state">Sending</span>}
+          {message.deliveryState === 'sent' && <span className="delivery-state">Sent</span>}
+          {message.deliveryState === 'failed' && <button type="button" className="message-retry" onClick={event => { event.stopPropagation(); onRetry?.(); }}>Not sent · Retry</button>}
           <span className="message-time">{timeString}</span>
         </div>
       </div>

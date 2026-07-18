@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.77` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.78`, `4.79`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.78` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.79`, `4.80`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -268,7 +268,7 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/send` | `{ "chatId", "senderId", "text", "replyTo?": { "id", "text", "senderId?" } }` | Creates a message, optionally persists its reply context, and updates chat metadata |
+| `POST` | `/send` | `{ "chatId", "senderId", "text", "clientMessageId?", "replyTo?": { "id", "text", "senderId?" } }` | Creates a message, optionally persists its reply context, and treats a repeated client delivery ID as the same message |
 | `POST` | `/groups` | `{ "creatorId", "name", "memberIds" }` | Creates a named group chat. Selected members must be matches of the creator; an empty selection creates a creator-only group. |
 | `GET` | `/groups/:userId` | None | Returns group chats that include the member, including unread and started-conversation status |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
@@ -424,6 +424,7 @@ The backend writes:
   senderId,
   text,
   createdAt,
+  clientMessageId,      // Optional client-generated delivery ID for safe retries
   replyTo // Optional { id, text, senderId } context for a threaded reply
 }
 ```
@@ -620,3 +621,4 @@ Murmur may proceed from a closed, supervised beta to a public release only after
 - `v4.75` (2026-07-18): Refined Discover tile typography by replacing the heavy outline with a clean dark depth shadow, restrained category-coloured glow, and tighter letter spacing while preserving every tile's label colour.
 - `v4.76` (2026-07-18): Completed publication-readiness review; recorded the public-launch blockers, security/privacy/safety gates, dependency-audit findings, operational requirements, and minimum release exit criteria.
 - `v4.77` (2026-07-18): Refined the Matches workspace with cleaner hierarchy, calmer surfaces, polished chat bubbles, and improved compose states. Fixed replies by persisting reply context through the chat API and rendering it in every sent or received reply.
+- `v4.78` (2026-07-18): Made Matches messages resilient to slow server responses and polling races. New messages now stay visible immediately as local pending bubbles, reconcile when the server confirms them, support multiple concurrent sends, and expose safe retry handling backed by client delivery IDs.

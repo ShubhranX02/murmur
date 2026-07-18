@@ -131,6 +131,30 @@
   font-style: italic;
 }
 
+.delivery-state,
+.message-retry {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 10px;
+  opacity: 0.72;
+}
+
+.message-retry {
+  color: #ffd1cf;
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.message-retry:hover,
+.message-retry:focus-visible {
+  color: #fff;
+  outline: none;
+}
+
 .pinned-icon {
   font-size: 13px;
   margin-right: 4px;

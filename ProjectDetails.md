@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.61` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.62`, `4.63`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.62` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.63`, `4.64`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -561,3 +561,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.59` (2026-07-18): Completed a project-context review covering Murmur's product vision, React/Vite and Express architecture, Firestore data model, Google and YouTube integrations, semantic matching pipeline, APIs, deployment model, and production priorities.
 - `v4.60` (2026-07-18): Softened Discover category-tile glows at rest and on hover/focus while retaining the category colour cues and visible interactive state.
 - `v4.61` (2026-07-18): Increased Discover category-tile glow spread by 25% and inter-tile spacing by 30% across desktop, tablet, and mobile layouts.
+- `v4.62` (2026-07-18): Incremented app version to v4.62 and updated the maintenance log.

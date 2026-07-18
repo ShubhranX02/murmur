@@ -22,6 +22,7 @@ This is the release checklist for taking Murmur from a local MVP to a safe, supp
    ```
 
 5. **Implemented — configure it:** Set `CORS_ORIGINS=https://app.example.com` on Render. List exact comma-separated origins; never use `*`.
+   - If the service fails at startup with a `CORS_ORIGINS must list the deployed web origins in production` error, this variable is missing or blank. Add it in Render **Environment**, save, and manually redeploy.
 6. **Owner action:** Give the Render Firebase service account only the permissions required for server-side Firestore access. Store it in Render’s secret store/file mechanism, not in Vercel or Git.
 7. **Owner action:** Rotate any credential that may have been used in local files, commits, screenshots, or logs. Enable repository secret scanning and branch protection.
 

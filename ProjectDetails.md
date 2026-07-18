@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.79` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.80`, `4.81`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.80` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.81`, `4.82`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -465,6 +465,8 @@ Set at least:
 - Either `GOOGLE_APPLICATION_CREDENTIALS=/etc/secrets/firebase-service-account.json` with a Render secret file containing the Firebase service-account JSON, or `FIREBASE_SERVICE_ACCOUNT_JSON` with the full JSON value
 - `PORT` is normally supplied by Render
 
+If Render exits with `CORS_ORIGINS must list the deployed web origins in production`, open the Render service's **Environment** settings and add `CORS_ORIGINS` with the exact Vercel frontend origin, for example `https://murmur.vercel.app`. Do not add a trailing slash and do not use `*`. For approved preview environments, add their full origins as a comma-separated list. Save the variable and redeploy the backend.
+
 Firestore Database must be created in the Firebase project before onboarding. The server now fails explicitly when its Firebase Admin credentials are absent or invalid, rather than silently returning zero matches. The server must be reachable over HTTPS. The first embedding request may take longer due to model initialization; the batching implementation minimizes subsequent processing time.
 
 ### Vercel frontend
@@ -638,3 +640,4 @@ Murmur may proceed from a closed, supervised beta to a public release only after
 - `v4.77` (2026-07-18): Refined the Matches workspace with cleaner hierarchy, calmer surfaces, polished chat bubbles, and improved compose states. Fixed replies by persisting reply context through the chat API and rendering it in every sent or received reply.
 - `v4.78` (2026-07-18): Made Matches messages resilient to slow server responses and polling races. New messages now stay visible immediately as local pending bubbles, reconcile when the server confirms them, support multiple concurrent sends, and expose safe retry handling backed by client delivery IDs.
 - `v4.79` (2026-07-18): Added the publication guide and release CI; implemented verified Google sign-in, signed API sessions, server-derived authorization, encrypted YouTube token storage, Firestore deny-direct-client rules, CORS/security/rate-limit hardening, request validation, and security regression tests.
+- `v4.80` (2026-07-18): Documented the Render production-startup remediation for the required exact-origin `CORS_ORIGINS` setting.

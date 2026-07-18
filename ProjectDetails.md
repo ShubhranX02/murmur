@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.71` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.72`, `4.73`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.72` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.73`, `4.74`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -571,3 +571,4 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.69` (2026-07-18): Added soft white text shadows to all Discover category-tile labels and increased their category-coloured glow spread at rest and on hover/focus.
 - `v4.70` (2026-07-18): Replaced Discover tile-label glows with solid, text-touching white shadows and increased the tile corner radius to 32px.
 - `v4.71` (2026-07-18): Changed Discover tile-label text shadows from white to solid black.
+- `v4.72` (2026-07-18): Added a subtle category-coloured glow behind the solid black text shadow on every Discover tile label.

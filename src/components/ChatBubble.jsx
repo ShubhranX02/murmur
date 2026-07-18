@@ -25,6 +25,12 @@ function ChatBubble({ message, isSent, senderPhoto, showAvatar, onDoubleClick })
         className={`chat-bubble ${isSent ? 'animate-slide-in-right' : 'animate-slide-in-left'}`}
         onDoubleClick={onDoubleClick}
       >
+        {message.replyTo && (
+          <div className="message-reply-reference">
+            <span>{message.replyTo.senderId === message.senderId ? 'Replying to yourself' : 'In reply to'}</span>
+            <p>{message.replyTo.text}</p>
+          </div>
+        )}
         <p className="message-text">
           {message.pinned && <span className="pinned-icon" title="Pinned message">📌 </span>}
           {message.text}

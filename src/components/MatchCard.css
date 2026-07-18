@@ -1,22 +1,22 @@
-.match-list-item {
+.match-list-item {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 12px;
-  min-height: 84px;
-  padding: 13px 16px;
+  gap: 11px;
+  min-height: 78px;
+  padding: 10px 16px;
   position: relative;
   background: transparent;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  transition: background 0.2s ease;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
   border-bottom: 1px solid var(--glass-border);
   border-radius: 0;
 }
 
 .match-list-item:hover {
-  background: #242638;
+  background: rgba(255, 255, 255, 0.055);
   z-index: 10;
 }
 
@@ -27,12 +27,12 @@
 }
 
 .match-list-item.has-unread {
-  background: rgba(255, 82, 82, 0.05);
+  background: rgba(255, 82, 82, 0.075);
 }
 
 .match-list-item.not-yet-talked {
-  background: rgba(255, 202, 64, 0.12);
-  border-left: 3px solid #ffca40;
+  background: rgba(255, 202, 64, 0.075);
+  border-left: 2px solid #ffca40;
 }
 
 .match-list-item.not-yet-talked:hover {
@@ -40,7 +40,8 @@
 }
 
 .match-list-item.is-selected {
-  background: rgba(229, 57, 53, 0.15);
+  background: linear-gradient(90deg, rgba(229, 57, 53, 0.19), rgba(229, 57, 53, 0.055));
+  box-shadow: inset 3px 0 0 var(--primary-light);
 }
 
 .match-list-item.is-group {
@@ -59,8 +60,8 @@
 }
 
 .match-avatar-container {
-  width: 58px;
-  height: 58px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   position: relative;
 }
@@ -69,7 +70,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 50%;
 }
 
@@ -95,7 +96,7 @@
 .match-name {
   overflow: hidden;
   color: var(--text-primary);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -149,7 +150,7 @@
   display: inline-block;
   min-width: 58px;
   color: var(--primary-light);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   text-align: right;
   text-decoration: underline dotted rgba(255, 82, 82, 0.65);

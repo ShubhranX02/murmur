@@ -52,12 +52,30 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
       setMessages(current => current.map(message => message.id === editingId ? { ...message, text, edited: true } : message));
       setInputText(''); setEditingId(null); return;
     }
-    const optimisticMessage = { id: Date.now().toString(), senderId: user.id, text, createdAt: new Date().toISOString(), replyTo: replyTo ? { id: replyTo.id, text: replyTo.text } : null };
+    const replyContext = replyTo ? {
+      id: replyTo.id,
+      text: replyTo.text,
+      senderId: replyTo.senderId
+    } : null;
+    const optimisticId = `pending-${Date.now()}`;
+    const optimisticMessage = { id: optimisticId, senderId: user.id, text, createdAt: new Date().toISOString(), replyTo: replyContext };
     setInputText(''); setIsSending(true); setReplyTo(null); setMessages(current => [...current, optimisticMessage]);
     try {
-      const response = await fetch(`${apiUrl}/api/chat/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chatId, senderId: user.id, text }) });
-      if (!response.ok) throw new Error('Failed to send message');
-    } catch (error) { console.error('Failed to send message:', error); } finally { setIsSending(false); }
+      const response = await fetch(`${apiUrl}/api/chat/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatId, senderId: user.id, text, replyTo: replyContext })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Failed to send message');
+      if (data.message) {
+        setMessages(current => current.map(message => message.id === optimisticId ? data.message : message));
+      }
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      setMessages(current => current.filter(message => message.id !== optimisticId));
+      setInputText(text);
+    } finally { setIsSending(false); }
   };
 
   const handleMessageAction = async (action, message) => {
@@ -128,9 +146,9 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
         </div>
       )}
       <div className="conversation-input-area">
-        {replyTo && <div className="reply-preview">Replying to: {replyTo.text}<button type="button" onClick={() => setReplyTo(null)}>×</button></div>}
-        {editingId && <div className="reply-preview">Editing message<button type="button" onClick={() => { setEditingId(null); setInputText(''); }}>×</button></div>}
-        <form onSubmit={handleSend} className="conversation-form"><input className="conversation-input" type="text" value={inputText} onChange={event => setInputText(event.target.value)} placeholder={editingId ? 'Edit your message...' : `Message ${match.displayName}...`} autoComplete="off" /><button type="submit" className="conversation-send" disabled={!inputText.trim() || isSending} aria-label="Send message">➤</button></form>
+        {replyTo && <div className="reply-preview"><div><span>Replying to {replyTo.senderId === user.id ? 'yourself' : match.displayName}</span><p>{replyTo.text}</p></div><button type="button" onClick={() => setReplyTo(null)} aria-label="Cancel reply">×</button></div>}
+        {editingId && <div className="reply-preview"><div><span>Editing message</span><p>Update your message before sending.</p></div><button type="button" onClick={() => { setEditingId(null); setInputText(''); }} aria-label="Cancel edit">×</button></div>}
+        <form onSubmit={handleSend} className="conversation-form"><input className="conversation-input" type="text" value={inputText} onChange={event => setInputText(event.target.value)} placeholder={editingId ? 'Edit your message...' : replyTo ? 'Write a reply...' : `Message ${match.displayName}...`} autoComplete="off" /><button type="submit" className="conversation-send" disabled={!inputText.trim() || isSending} aria-label="Send message">➤</button></form>
       </div>
     </section>
   );

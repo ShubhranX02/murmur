@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.75` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.76`, `4.77`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.77` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.78`, `4.79`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -268,7 +268,7 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/send` | `{ "chatId", "senderId", "text" }` | Creates a message and updates chat metadata |
+| `POST` | `/send` | `{ "chatId", "senderId", "text", "replyTo?": { "id", "text", "senderId?" } }` | Creates a message, optionally persists its reply context, and updates chat metadata |
 | `POST` | `/groups` | `{ "creatorId", "name", "memberIds" }` | Creates a named group chat. Selected members must be matches of the creator; an empty selection creates a creator-only group. |
 | `GET` | `/groups/:userId` | None | Returns group chats that include the member, including unread and started-conversation status |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
@@ -423,7 +423,8 @@ The backend writes:
 {
   senderId,
   text,
-  createdAt
+  createdAt,
+  replyTo // Optional { id, text, senderId } context for a threaded reply
 }
 ```
 
@@ -497,6 +498,48 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
 10. **Scale Discover search.** The MVP filters active public rooms in the backend to perform case-insensitive video-title substring results without exposing nonpublic rooms. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
 11. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
+
+---
+
+## Publication readiness assessment (2026-07-18)
+
+**Status: not ready for a public launch.** The product flow and production frontend build work, but the backend currently accepts unverified identities and caller-supplied user IDs. This would allow an attacker to impersonate a member, read private messages, alter profiles, consume another member's YouTube session, or create/delete content as them. Do not expose the existing deployment publicly until the critical and high-priority gates below are complete and verified.
+
+### Critical security and data-protection gates
+
+1. **Implement real server-side authentication.** Verify Google ID tokens with Google's supported verifier (checking signature, issuer, audience, expiry, and nonce where applicable), or exchange them for Firebase Auth sessions. Reject every request without a valid authenticated principal.
+2. **Derive the acting user exclusively from the verified session.** Remove `userId`, `senderId`, `creatorId`, and `publisherId` as authority inputs. Do not retain the development `x-user-id` fallback or the unverified JWT payload parser in `server/middleware/auth.js`.
+3. **Enforce object-level authorization on every protected operation.** Verify membership before reading/sending/marking read in a direct or group chat; verify participation before reading room details/messages; verify the owner before profile editing, token storage, room creation/deletion, match delivery/addition, and refresh skipping. Match/profile lookups must not reveal information to arbitrary unauthenticated callers.
+4. **Replace the in-memory YouTube token map.** Use an encrypted, access-controlled server-side session/token store; obtain and rotate refresh tokens only with the appropriate OAuth flow; protect keys with a managed secret/KMS; revoke tokens when a member disconnects or deletes their account. Handle token expiry, server restarts, and multi-instance deployments safely.
+5. **Constrain CORS and browser protections.** Allow only the explicit production and approved preview/local origins, avoid permissive credentialed CORS, use secure HTTP-only/same-site session cookies if cookie sessions are selected, and add CSRF protection where needed.
+6. **Lock down Firestore.** Add, test, and deploy Firestore Security Rules with deny-by-default access. The browser should not be able to read or write private user, match, chat, activity, message, or token data directly; privileged writes should be mediated by the authenticated server.
+7. **Prevent abuse at the edge and API.** Add rate limits and quotas by account/IP for sign-in, token use, matching, search, joins, and messaging; request-size and field-length limits; schema validation; bot protection; and structured audit logs. Message text needs a practical maximum length and all user-controlled fields need server-side validation.
+8. **Upgrade or mitigate vulnerable production dependencies.** The 2026-07-18 `npm audit --omit=dev` result reports 9 vulnerabilities (3 high, 6 moderate), including high-severity `adm-zip` through `@huggingface/transformers`/`onnxruntime-node` and moderate `uuid` through `firebase-admin`. Resolve, test, and lock compatible upgrades; do not use a forced breaking downgrade without validation.
+9. **Protect secrets and deployment supply chain.** Verify no credentials exist in Git history or build logs, rotate any exposed keys, use separate least-privilege dev/staging/production projects, enforce secret scanning, pin CI/runtime versions, and restrict Firebase service-account permissions to the minimum required.
+
+### Trust, safety, legal, and product gates
+
+10. **Establish age policy and safeguards before launch.** The current form accepts ages 13–120 and the platform can match minors with adults. Decide whether Murmur is adults-only (the simplest public-launch path) or build robust age assurance, age-based matching boundaries, guardian/consent handling where legally required, and an escalation process. Do not launch with the current unrestricted matching rule.
+11. **Ship community-safety controls.** Add block, report, mute, remove-from-group, room moderation, creator/admin controls, user-report triage, account suspension/appeal procedures, anti-harassment/anti-spam detection, and an on-call incident-response process. The current product has unrestricted messaging without moderation.
+12. **Publish enforceable user-facing policies.** Prepare Privacy Policy, Terms of Service, Community Guidelines, acceptable-use policy, support/contact details, and a clear YouTube-data consent screen. State exactly what YouTube data is accessed, transformed, shared, retained, refreshed, and deleted; explain matching and profile visibility.
+13. **Complete privacy rights and lifecycle controls.** Provide account deletion, data export/access, YouTube disconnection, consent withdrawal, retention/deletion schedules, backups and deletion propagation, and a process to service applicable privacy requests. Document lawful basis/consent, cross-border processing, vendor/subprocessor responsibilities, and a privacy impact assessment appropriate to the launch markets.
+14. **Complete Google/YouTube compliance.** Verify the OAuth consent screen, production publishing/verification requirements for the sensitive `youtube.readonly` scope, approved redirect/origin configuration, branding, privacy-policy links, Limited Use compliance, quota monitoring, and documented use of YouTube API data. Confirm that storing `savedLikedVideos` and using it for matchmaking complies with the current YouTube API Services Terms and the consent disclosed to members.
+15. **Define profile-discovery and sensitive-data boundaries.** Member-ID search and public profiles need product decisions on discoverability, minimum visible fields, blocking effects, and protection from enumeration. Reassess whether city, age, gender, liked-video count, and category breakdown can expose sensitive traits when combined.
+
+### Reliability, quality, and operational gates
+
+16. **Create a real test suite and release gate.** Add unit tests for embeddings, score scaling, authorization, validation, and matching; integration tests against Firestore emulators; end-to-end tests for sign-in/onboarding, YouTube failures, profiles, matching, direct/group chat, rooms, reporting/blocking, and deletion. Require automated tests, linting, dependency checks, and production builds in CI before deploys.
+17. **Run a complete staging and pilot programme.** Use a separate Firebase/Google/Render/Vercel staging environment, test with real OAuth grants and supported browsers/mobile screen sizes, conduct accessibility testing (keyboard, screen reader, contrast), security testing/penetration review, load testing, and a limited moderated beta before inviting the public.
+18. **Make embedding and matching resilient.** Do not run unbounded model downloads/CPU work on request paths. Prepackage or prewarm the model, set timeouts and cancellation, queue/retry work, surface recoverable status, monitor latency/cost, and supply a safe fallback. Define behavior for members with no liked videos, private liked videos, revoked access, quota failures, and model failure.
+19. **Replace non-scalable data access.** The current matching path reads all onboarded users before scoring a shortlist, and Discover scans all rooms for substring search. Add Firestore indexes and pagination now; plan indexed category/vector retrieval, ANN/vector search, a job queue, and dedicated search/indexing before meaningful growth.
+20. **Improve data integrity and concurrency.** Use transactions/atomic writes for initial/daily match delivery, match documents, and any room/chat state that can race. Ensure activity deletion recursively cleans its message subcollection or uses a retention/TTL cleanup process. Validate timestamps and malformed legacy data safely.
+21. **Add observability and operations.** Introduce structured logs with PII redaction, error tracking, uptime/health monitoring, performance metrics, alerting, backup/restore tests, deployment rollback, runbooks, incident response, and defined ownership/support hours. The health endpoint should also indicate dependency readiness without leaking internals.
+22. **Harden the UX for production.** Add authenticated route guards, explicit empty/error/offline states, retry/cancel behavior, pagination, message-delivery feedback, data-refresh explanations, account/session revocation behavior, and accessible validation. Replace three- and ten-second polling with real-time listeners or a scalable push/realtime strategy if load testing shows polling is not acceptable.
+23. **Complete release engineering.** Use a non-`0.0.0` package release version, document supported Node version with `engines`, remove unused Vite starter files/dependencies, add a README/on-call deployment guide, configure production environment variables, custom domain/TLS/security headers, separate analytics consent, and a reproducible deployment pipeline.
+
+### Minimum public-launch exit criteria
+
+Murmur may proceed from a closed, supervised beta to a public release only after items 1–15 are complete, all authorization and privacy flows have independent review, critical/high dependency findings are resolved or formally risk-accepted with compensating controls, automated staging tests pass, a security review finds no critical/high issues, monitoring/support are staffed, and a moderated pilot demonstrates stable onboarding, matching, and messaging under expected load.
 
 ---
 
@@ -575,3 +618,5 @@ This project is an MVP. An AI or developer taking it forward should treat the fo
 - `v4.73` (2026-07-18): Strengthened the category-coloured text glow on Discover tiles with a brighter inner glow and broader outer halo.
 - `v4.74` (2026-07-18): Standardised the active interface on the Inter typeface used by The Algorithm tab, replacing the profile member-ID monospace exception while preserving the Murmur logo treatment.
 - `v4.75` (2026-07-18): Refined Discover tile typography by replacing the heavy outline with a clean dark depth shadow, restrained category-coloured glow, and tighter letter spacing while preserving every tile's label colour.
+- `v4.76` (2026-07-18): Completed publication-readiness review; recorded the public-launch blockers, security/privacy/safety gates, dependency-audit findings, operational requirements, and minimum release exit criteria.
+- `v4.77` (2026-07-18): Refined the Matches workspace with cleaner hierarchy, calmer surfaces, polished chat bubbles, and improved compose states. Fixed replies by persisting reply context through the chat API and rendering it in every sent or received reply.

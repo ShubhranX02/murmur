@@ -94,21 +94,34 @@ router.get('/groups/:userId', async (req, res) => {
 
 router.post('/send', async (req, res) => {
   try {
-    const { chatId, senderId, text } = req.body;
+    const { chatId, senderId, text, replyTo } = req.body;
+    const messageText = typeof text === 'string' ? text.trim() : '';
     
-    if (!chatId || !senderId || !text) {
+    if (!chatId || !senderId || !messageText) {
       return res.status(400).json({ error: 'Missing required chat fields' });
+    }
+    if (messageText.length > 4000) {
+      return res.status(400).json({ error: 'Messages must be 4,000 characters or fewer.' });
     }
 
     if (!db) {
       return res.status(500).json({ error: 'Database not configured' });
     }
 
+    const replyContext = replyTo && typeof replyTo === 'object' && typeof replyTo.id === 'string' && typeof replyTo.text === 'string'
+      ? {
+        id: replyTo.id,
+        text: replyTo.text.slice(0, 4000),
+        ...(typeof replyTo.senderId === 'string' ? { senderId: replyTo.senderId } : {})
+      }
+      : null;
+
     const messageData = {
       senderId,
-      text,
+      text: messageText,
       createdAt: FieldValue.serverTimestamp()
     };
+    if (replyContext) messageData.replyTo = replyContext;
 
     const chatRef = db.collection('chats').doc(chatId);
     const existingChat = await chatRef.get();
@@ -121,18 +134,27 @@ router.post('/send', async (req, res) => {
     }
     
     // Write message to subcollection
-    await chatRef.collection('messages').add(messageData);
+    const messageRef = await chatRef.collection('messages').add(messageData);
 
     // Update parent doc
     await chatRef.set({
       users,
-      lastMessage: text,
+      lastMessage: messageText,
       lastMessageAt: FieldValue.serverTimestamp(),
       lastSenderId: senderId,
       readBy: [senderId]
     }, { merge: true });
 
-    res.json({ success: true });
+    res.json({
+      success: true,
+      message: {
+        id: messageRef.id,
+        senderId,
+        text: messageText,
+        createdAt: new Date().toISOString(),
+        ...(replyContext ? { replyTo: replyContext } : {})
+      }
+    });
 
   } catch (error) {
     console.error('Error sending message:', error);

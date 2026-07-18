@@ -20,6 +20,7 @@
   --shadow-glow: 0 0 30px rgba(229, 57, 53, 0.2);
   --doodle-wallpaper: url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23839599' stroke-width='1.35' stroke-linecap='round' stroke-linejoin='round' opacity='.23'%3E%3Cpath d='M19 25h20a5 5 0 0 1 5 5v9a5 5 0 0 1-5 5h-8l-6 5v-5h-6a5 5 0 0 1-5-5v-9a5 5 0 0 1 5-5Z'/%3E%3Cpath d='m125 18 13 19h-8v11h-10V37h-8l13-19Zm0 30v11m-8 0h16'/%3E%3Cpath d='M75 55c-6 0-9 4-11 11l-3 12c-1 5 5 8 8 4l4-6h14l4 6c3 4 9 1 8-4l-3-12c-2-7-5-11-11-11H75Zm-3 14h6m-3-3v6m13-4h1m5 0h1'/%3E%3Cpath d='M133 76c7 0 13 6 13 13s-6 13-13 13-13-6-13-13 6-13 13-13Zm-5 13 4 4 7-8'/%3E%3Ccircle cx='31' cy='111' r='5'/%3E%3Ccircle cx='48' cy='107' r='5'/%3E%3Ccircle cx='65' cy='111' r='5'/%3E%3Cpath d='M22 129c1-8 6-12 12-12s11 4 12 12M39 126c1-9 6-14 12-14s11 5 12 14M56 129c1-8 6-12 12-12s11 4 12 12'/%3E%3Cpath d='m116 122 11-17 11 17h-7v10h-8v-10h-7Zm11 10v13m-9 0h18'/%3E%3Cpath d='M89 151c0-5 4-9 9-9s9 4 9 9c0 8-9 13-9 13s-9-5-9-13Z'/%3E%3Ccircle cx='98' cy='151' r='2'/%3E%3C/g%3E%3C/svg%3E");
   --doodle-wallpaper-size: 100px 100px;
+  --font-interface: 'Inter', system-ui, sans-serif;
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 20px;
@@ -36,7 +37,7 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-interface);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   min-height: 100vh;

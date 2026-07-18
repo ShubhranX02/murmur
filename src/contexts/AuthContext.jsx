@@ -1,4 +1,5 @@
 import { createContext, useState, useEffect, useContext } from 'react';
+import { API_URL, apiFetch, clearSessionToken, saveSessionToken } from '../lib/api';
 
 const AuthContext = createContext();
 const YOUTUBE_DATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -45,7 +46,7 @@ export const AuthProvider = ({ children }) => {
 
   const signInWithGoogle = async (credential) => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/google`, {
+      const response = await fetch(`${API_URL}/api/auth/google`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,8 +59,10 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      if (!data.sessionToken) throw new Error('Sign in did not create a session.');
       setUser(data.user);
       localStorage.setItem('murmur_user', JSON.stringify(data.user));
+      saveSessionToken(data.sessionToken);
       return data.user;
     } catch (error) {
       console.error('Error signing in:', error);
@@ -71,12 +74,12 @@ export const AuthProvider = ({ children }) => {
     if (!user) throw new Error('Must be signed in to store YouTube token');
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/auth/youtube-token`, {
+      const response = await apiFetch('/api/auth/youtube-token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ accessToken, userId: user.id }),
+        body: JSON.stringify({ accessToken }),
       });
 
       if (!response.ok) {
@@ -110,6 +113,7 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
     setYoutubeToken(null);
     localStorage.removeItem('murmur_user');
+    clearSessionToken();
   };
 
   const value = {

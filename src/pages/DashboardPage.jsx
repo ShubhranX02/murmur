@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import './DashboardPage.css';
 
 function DashboardPage() {
@@ -22,7 +23,7 @@ function DashboardPage() {
     const loadMatchSummary = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        const response = await fetch(`${apiUrl}/api/matches/${user.id}`);
+        const response = await apiFetch(`${apiUrl}/api/matches/${user.id}`);
         const data = await response.json().catch(() => ({}));
         if (active && response.ok) {
           setMatchSummary({

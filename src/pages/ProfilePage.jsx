@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import CategoryRingChart from '../components/CategoryRingChart';
 import LoadingSpinner from '../components/LoadingSpinner';
 import IndiaLocationPicker from '../components/IndiaLocationPicker';
@@ -53,7 +54,7 @@ function ProfilePage() {
       setMatchScore(null);
       setIsMatched(false);
       try {
-        const response = await fetch(`${apiUrl}/api/auth/profile/${targetUserId}`);
+        const response = await apiFetch(`${apiUrl}/api/auth/profile/${targetUserId}`);
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Could not load this profile.');
         if (!active) return;
@@ -62,7 +63,7 @@ function ProfilePage() {
 
         if (!isOwnProfile) {
           try {
-            const scoreResponse = await fetch(`${apiUrl}/api/matches/${user.id}/${targetUserId}`);
+            const scoreResponse = await apiFetch(`${apiUrl}/api/matches/${user.id}/${targetUserId}`);
             const scoreData = await scoreResponse.json().catch(() => ({}));
             if (active && scoreResponse.ok) {
               setMatchScore(scoreData.match?.score ?? null);
@@ -124,7 +125,7 @@ function ProfilePage() {
     setIsSaving(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/auth/profile/${user.id}`, {
+      const response = await apiFetch(`${apiUrl}/api/auth/profile/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileDetails: formDetails })
@@ -147,10 +148,10 @@ function ProfilePage() {
     setIsAddingMatch(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/matches/add`, {
+      const response = await apiFetch(`${apiUrl}/api/matches/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, otherUserId: profile.id })
+        body: JSON.stringify({ otherUserId: profile.id })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not add this member to your matches.');

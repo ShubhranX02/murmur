@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import { APP_VERSION } from '../config/appVersion';
 import './Navbar.css';
 
@@ -42,7 +43,7 @@ function Navbar() {
     setSearchError('');
     setIsSearching(true);
     try {
-      const response = await fetch(`${apiUrl}/api/auth/profile/${encodeURIComponent(query)}`);
+      const response = await apiFetch(`${apiUrl}/api/auth/profile/${encodeURIComponent(query)}`);
       if (!response.ok) {
         setSearchError('No such user exists');
         return;

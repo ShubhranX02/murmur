@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { db, FieldValue } = require('../config/firebase');
+const { authenticate } = require('../middleware/auth');
+
+router.use(authenticate);
 
 function serialiseChatTimestamp(value) {
   return value?.toDate ? value.toDate().toISOString() : null;
@@ -15,9 +18,24 @@ function serialiseMessage(doc) {
   };
 }
 
+async function getAuthorizedChat(chatId, userId) {
+  const chatRef = db.collection('chats').doc(chatId);
+  const chatDoc = await chatRef.get();
+  if (chatDoc.exists && chatDoc.data().isGroup) {
+    return (chatDoc.data().users || []).includes(userId) ? { chatRef, chatDoc, users: chatDoc.data().users } : null;
+  }
+
+  const users = chatId.split('_');
+  if (users.length !== 2 || !users.includes(userId)) return null;
+  const matchDoc = await db.collection('matches').doc(chatId).get();
+  if (!matchDoc.exists || !(matchDoc.data().users || []).every(id => users.includes(id))) return null;
+  return { chatRef, chatDoc, users };
+}
+
 router.post('/groups', async (req, res) => {
   try {
-    const { creatorId, name, memberIds = [] } = req.body;
+    const { name, memberIds = [] } = req.body;
+    const creatorId = req.auth.userId;
     const groupName = String(name || '').trim();
     const requestedMemberIds = Array.isArray(memberIds) ? memberIds : [];
     const selectedMemberIds = [...new Set(requestedMemberIds)]
@@ -73,6 +91,7 @@ router.post('/groups', async (req, res) => {
 
 router.get('/groups/:userId', async (req, res) => {
   try {
+    if (req.params.userId !== req.auth.userId) return res.status(403).json({ error: 'You can only view your own groups.' });
     if (!db) return res.status(503).json({ error: 'Database not configured' });
 
     const snapshot = await db.collection('chats').where('users', 'array-contains', req.params.userId).get();
@@ -103,13 +122,14 @@ router.get('/groups/:userId', async (req, res) => {
 
 router.post('/send', async (req, res) => {
   try {
-    const { chatId, senderId, text, replyTo, clientMessageId } = req.body;
+    const { chatId, text, replyTo, clientMessageId } = req.body;
+    const senderId = req.auth.userId;
     const messageText = typeof text === 'string' ? text.trim() : '';
     const safeClientMessageId = typeof clientMessageId === 'string' && clientMessageId.length <= 128
       ? clientMessageId
       : null;
     
-    if (!chatId || !senderId || !messageText) {
+    if (typeof chatId !== 'string' || !messageText) {
       return res.status(400).json({ error: 'Missing required chat fields' });
     }
     if (messageText.length > 4000) {
@@ -135,15 +155,9 @@ router.post('/send', async (req, res) => {
     };
     if (replyContext) messageData.replyTo = replyContext;
 
-    const chatRef = db.collection('chats').doc(chatId);
-    const existingChat = await chatRef.get();
-    const users = existingChat.exists && existingChat.data().isGroup
-      ? existingChat.data().users || []
-      : chatId.split('_');
-
-    if (existingChat.exists && existingChat.data().isGroup && !users.includes(senderId)) {
-      return res.status(403).json({ error: 'You are not a member of this group.' });
-    }
+    const authorizedChat = await getAuthorizedChat(chatId, senderId);
+    if (!authorizedChat) return res.status(403).json({ error: 'You cannot send messages in this chat.' });
+    const { chatRef, users } = authorizedChat;
 
     // A retried request keeps the original client ID, making delivery safe when
     // a browser loses the first server response after the message was written.
@@ -192,17 +206,15 @@ router.post('/send', async (req, res) => {
 router.post('/:chatId/read', async (req, res) => {
   try {
     const { chatId } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.auth.userId;
 
     if (!db) {
       return res.status(503).json({ error: 'Database not configured' });
     }
 
-    await db.collection('chats').doc(chatId).set({
+    const authorizedChat = await getAuthorizedChat(chatId, userId);
+    if (!authorizedChat) return res.status(403).json({ error: 'You cannot access this chat.' });
+    await authorizedChat.chatRef.set({
       readBy: FieldValue.arrayUnion(userId)
     }, { merge: true });
 
@@ -221,8 +233,9 @@ router.get('/:chatId/messages', async (req, res) => {
       return res.json({ messages: [] });
     }
 
-    const messagesSnapshot = await db.collection('chats')
-      .doc(chatId)
+    const authorizedChat = await getAuthorizedChat(chatId, req.auth.userId);
+    if (!authorizedChat) return res.status(403).json({ error: 'You cannot access this chat.' });
+    const messagesSnapshot = await authorizedChat.chatRef
       .collection('messages')
       .orderBy('createdAt', 'asc')
       .limit(100)

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import { CATEGORY_MAP } from '../config/categories';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './FindPage.css';
@@ -47,9 +48,9 @@ function FindPage() {
       setIsLoading(true);
       setError('');
       try {
-        const params = new URLSearchParams({ userId: user.id, categoryId: selectedCategory });
+        const params = new URLSearchParams({ categoryId: selectedCategory });
         if (search.trim()) params.set('q', search.trim());
-        const response = await fetch(`${apiUrl}/api/activities/discover?${params.toString()}`, { signal: controller.signal });
+        const response = await apiFetch(`${apiUrl}/api/activities/discover?${params.toString()}`, { signal: controller.signal });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(data.error || 'Could not load conversations.');
         setActivities(data.activities || []);
@@ -80,10 +81,10 @@ function FindPage() {
   const joinConversation = async activityId => {
     setJoiningId(activityId);
     try {
-      const response = await fetch(`${apiUrl}/api/activities/${activityId}/join`, {
+      const response = await apiFetch(`${apiUrl}/api/activities/${activityId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({})
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not join this conversation.');

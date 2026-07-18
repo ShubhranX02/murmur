@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import LoadingSpinner from '../components/LoadingSpinner';
 import IndiaLocationPicker from '../components/IndiaLocationPicker';
+import { apiFetch } from '../lib/api';
 import './OnboardingPage.css';
 
 function OnboardingPage() {
@@ -153,10 +154,10 @@ function OnboardingPage() {
   const handleSkipYouTubeRefresh = async () => {
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/auth/youtube-refresh/skip`, {
+      const response = await apiFetch(`${apiUrl}/api/auth/youtube-refresh/skip`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({})
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not continue without refreshing YouTube.');
@@ -167,16 +168,12 @@ function OnboardingPage() {
     }
   };
 
-  const computeMatches = async (youtubeData) => {
+  const computeMatches = async () => {
     setAnalysisStage(2);
-    const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
+    const matchRes = await apiFetch(`${apiUrl}/api/matches/compute`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user.id,
-        likedVideos: youtubeData.likedVideos,
-        subscriptions: youtubeData.subscriptions
-      })
+      body: JSON.stringify({})
     });
 
     if (!matchRes.ok) {
@@ -185,6 +182,10 @@ function OnboardingPage() {
     }
 
     const matchData = await matchRes.json();
+    setStats({
+      liked: matchData.profileData?.youtubeData?.likedVideoCount || 0,
+      subs: matchData.profileData?.youtubeData?.subscriptionCount || 0
+    });
     setAnalysisStage(3);
     setMatchCount(matchData.matches?.length || 0);
     setTimeout(() => {
@@ -202,30 +203,12 @@ function OnboardingPage() {
     setAnalysisStage(1);
     
     try {
-      // 1. Fetch YouTube Data
-      const fetchRes = await fetch(`${apiUrl}/api/youtube/fetch`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      });
-      
-      if (!fetchRes.ok) {
-        const errorData = await fetchRes.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to fetch YouTube data');
-      }
-      const fetchData = await fetchRes.json();
-      
-      setStats({
-        liked: fetchData.stats.likedCount,
-        subs: fetchData.stats.subscriptionCount
-      });
-      
       if (user.detailsComplete) {
-        await computeMatches(fetchData);
+        await computeMatches();
       } else {
         // Location and age are matching priorities, so they are collected
         // before a new member's first candidate calculation.
-        setPendingYoutubeData(fetchData);
+        setPendingYoutubeData(true);
         setIsAnalyzing(false);
         setStep(2);
       }
@@ -257,7 +240,7 @@ function OnboardingPage() {
     setIsSavingDetails(true);
     setError(null);
     try {
-      const response = await fetch(`${apiUrl}/api/auth/profile/${user.id}`, {
+      const response = await apiFetch(`${apiUrl}/api/auth/profile/${user.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileDetails })
@@ -269,7 +252,7 @@ function OnboardingPage() {
       if (pendingYoutubeData) {
         setStep(1);
         setIsAnalyzing(true);
-        await computeMatches(pendingYoutubeData);
+        await computeMatches();
       } else {
         setStep(3);
       }

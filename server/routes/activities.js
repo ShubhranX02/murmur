@@ -1,8 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const { db, FieldValue } = require('../config/firebase');
+const { authenticate } = require('../middleware/auth');
 
 const MAX_PARTICIPANT_LIMIT = 30;
+
+router.use(authenticate);
 
 function toDate(value) {
   return value?.toDate ? value.toDate() : new Date(value);
@@ -38,16 +41,19 @@ async function getMatchUserIds(userId) {
 
 router.post('/create', async (req, res) => {
   try {
-    const { publisherId, video, participantLimit, expiresInHours, audience = 'matches' } = req.body;
+    const { video, participantLimit, expiresInHours, audience = 'matches' } = req.body;
+    const publisherId = req.auth.userId;
     const totalParticipantLimit = parseInt(participantLimit, 10);
     
     if (!publisherId || !video || !totalParticipantLimit || !expiresInHours) {
       return res.status(400).json({ error: 'Missing required activity fields' });
     }
 
-    if (!video.id || !video.title || totalParticipantLimit < 2 || totalParticipantLimit > MAX_PARTICIPANT_LIMIT) {
+    if (!video.id || !video.title || typeof video.id !== 'string' || typeof video.title !== 'string' || video.title.length > 200 || totalParticipantLimit < 2 || totalParticipantLimit > MAX_PARTICIPANT_LIMIT) {
       return res.status(400).json({ error: `Conversations must allow between 2 and ${MAX_PARTICIPANT_LIMIT} people.` });
     }
+    const duration = parseInt(expiresInHours, 10);
+    if (!Number.isInteger(duration) || duration < 1 || duration > 168) return res.status(400).json({ error: 'Choose a duration between 1 hour and 7 days.' });
     if (!['public', 'matches'].includes(audience)) {
       return res.status(400).json({ error: 'Choose who can participate in this conversation.' });
     }
@@ -58,7 +64,7 @@ router.post('/create', async (req, res) => {
     
     // Calculate expiration date
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + parseInt(expiresInHours, 10));
+    expiresAt.setHours(expiresAt.getHours() + duration);
 
     // Fetch publisher details for denormalization
     const publisherDoc = await db.collection('users').doc(publisherId).get();
@@ -92,11 +98,7 @@ router.post('/create', async (req, res) => {
 // Get activities for a user's matches
 router.get('/', async (req, res) => {
   try {
-    const { userId } = req.query;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.auth.userId;
 
     if (!db) {
       return res.status(503).json({ error: 'Database not configured' });
@@ -168,8 +170,8 @@ router.get('/', async (req, res) => {
 // case-insensitive substring search, so the MVP filters active rooms server-side.
 router.get('/discover', async (req, res) => {
   try {
-    const { userId, categoryId, q = '' } = req.query;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
+    const { categoryId, q = '' } = req.query;
+    const userId = req.auth.userId;
     if (!db) return res.status(503).json({ error: 'Database not configured' });
 
     const snapshot = await db.collection('activities').get();
@@ -201,11 +203,7 @@ router.get('/discover', async (req, res) => {
 router.post('/:activityId/join', async (req, res) => {
   try {
     const { activityId } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.auth.userId;
     
     if (!db) {
       return res.status(503).json({ error: 'Database not configured' });
@@ -261,12 +259,14 @@ router.post('/:activityId/join', async (req, res) => {
 router.post('/:activityId/send', async (req, res) => {
   try {
     const { activityId } = req.params;
-    const { senderId, text } = req.body;
+    const { text } = req.body;
+    const senderId = req.auth.userId;
     const messageText = String(text || '').trim();
     
     if (!senderId || !messageText) {
       return res.status(400).json({ error: 'Missing required chat fields' });
     }
+    if (messageText.length > 4000) return res.status(400).json({ error: 'Messages must be 4,000 characters or fewer.' });
 
     if (!db) {
       return res.status(500).json({ error: 'Database not configured' });
@@ -311,8 +311,12 @@ router.get('/:activityId/messages', async (req, res) => {
       return res.json({ messages: [] });
     }
 
-    const messagesSnapshot = await db.collection('activities')
-      .doc(activityId)
+    const activityRef = db.collection('activities').doc(activityId);
+    const activityDoc = await activityRef.get();
+    if (!activityDoc.exists) return res.status(404).json({ error: 'Activity not found' });
+    if (!(activityDoc.data().participants || []).includes(req.auth.userId)) return res.status(403).json({ error: 'Join this conversation before reading its messages.' });
+
+    const messagesSnapshot = await activityRef
       .collection('messages')
       .orderBy('createdAt', 'asc')
       .limit(100)
@@ -347,6 +351,7 @@ router.get('/:activityId/details', async (req, res) => {
     }
     
     const data = doc.data();
+    if (!(data.participants || []).includes(req.auth.userId)) return res.status(403).json({ error: 'Join this conversation before viewing its details.' });
     
     // Fetch participant profiles for display
     let participantsProfiles = [];
@@ -385,11 +390,7 @@ router.get('/:activityId/details', async (req, res) => {
 router.delete('/:activityId', async (req, res) => {
   try {
     const { activityId } = req.params;
-    const { userId } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
+    const userId = req.auth.userId;
 
     if (!db) {
       return res.status(503).json({ error: 'Database not configured' });

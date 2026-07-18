@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import './CreateActivityPage.css';
 
 function CreateActivityPage() {
@@ -64,29 +65,16 @@ function CreateActivityPage() {
     tokenClient.requestAccessToken();
   };
 
-  const startSync = async (accessToken) => {
+  const startSync = async () => {
     setIsSyncing(true);
     setSyncError(null);
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
     
     try {
-      const fetchRes = await fetch(`${apiUrl}/api/youtube/fetch`, {
+      const matchRes = await apiFetch(`${apiUrl}/api/matches/compute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
-      });
-      
-      if (!fetchRes.ok) throw new Error('Failed to fetch YouTube data');
-      const fetchData = await fetchRes.json();
-      
-      const matchRes = await fetch(`${apiUrl}/api/matches/compute`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          likedVideos: fetchData.likedVideos,
-          subscriptions: fetchData.subscriptions
-        })
+        body: JSON.stringify({})
       });
       
       if (!matchRes.ok) throw new Error('Failed to save videos to profile');
@@ -116,11 +104,10 @@ function CreateActivityPage() {
     
     setIsSubmitting(true);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/create`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          publisherId: user.id,
           video: selectedVideo,
           participantLimit: parseInt(participantLimit, 10),
           expiresInHours: parseInt(timeLimit, 10),

@@ -1,22 +1,20 @@
 const express = require('express');
 const router = express.Router();
-const { tokenStore } = require('./auth');
+const { db } = require('../config/firebase');
+const { decryptToken } = require('../services/tokenVault');
+const { authenticate } = require('../middleware/auth');
 const { fetchLikedVideos, fetchSubscriptions } = require('../services/youtube');
 
-router.post('/fetch', async (req, res) => {
+router.post('/fetch', authenticate, async (req, res) => {
   try {
-    const { userId } = req.body;
-    
-    if (!userId) {
-      return res.status(400).json({ error: 'userId is required' });
-    }
-
-    const accessToken = tokenStore.get(userId);
+    if (!db) return res.status(503).json({ error: 'Database not configured' });
+    const userDoc = await db.collection('users').doc(req.auth.userId).get();
+    const accessToken = decryptToken(userDoc.data()?.youtubeAccessToken);
     if (!accessToken) {
-      return res.status(401).json({ error: 'YouTube access token not found. Please connect YouTube first.' });
+      return res.status(401).json({ error: 'Your YouTube connection has expired. Please reconnect YouTube.' });
     }
 
-    console.log(`Fetching YouTube data for user ${userId}...`);
+    console.log(`Fetching YouTube data for authenticated user ${req.auth.userId}.`);
     
     const [likedVideos, subscriptions] = await Promise.all([
       fetchLikedVideos(accessToken),

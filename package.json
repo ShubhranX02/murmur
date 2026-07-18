@@ -1,13 +1,17 @@
 {
   "name": "murmur",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20 <27"
+  },
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "node server/index.js",
     "client": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "NODE_ENV=test node --test"
   },
   "devDependencies": {
     "typescript": "~6.0.2",
@@ -19,10 +23,15 @@
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
     "firebase": "^12.16.0",
     "firebase-admin": "^14.1.0",
+    "google-auth-library": "^10.9.0",
+    "helmet": "^8.3.0",
+    "jsonwebtoken": "^9.0.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router-dom": "^7.18.1"
+    "react-router-dom": "^7.18.1",
+    "zod": "^4.4.3"
   }
 }

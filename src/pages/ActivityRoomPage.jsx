@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import ChatBubble from '../components/ChatBubble';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './ActivityRoomPage.css';
@@ -29,7 +30,7 @@ function ActivityRoomPage() {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         
         // Fetch activity details
-        const detailsRes = await fetch(`${apiUrl}/api/activities/${activityId}/details`);
+        const detailsRes = await apiFetch(`${apiUrl}/api/activities/${activityId}/details`);
         if (!detailsRes.ok) {
           if (detailsRes.status === 404) {
              navigate('/activity', { replace: true });
@@ -49,7 +50,7 @@ function ActivityRoomPage() {
         setActivity(detailsData.activity);
 
         // Fetch messages
-        const msgsRes = await fetch(`${apiUrl}/api/activities/${activityId}/messages`);
+        const msgsRes = await apiFetch(`${apiUrl}/api/activities/${activityId}/messages`);
         if (msgsRes.ok) {
           const msgsData = await msgsRes.json();
           setMessages(msgsData.messages || []);
@@ -67,7 +68,7 @@ function ActivityRoomPage() {
     // Poll for new messages every 3 seconds
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/messages`);
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/messages`);
         if (res.ok) {
           const data = await res.json();
           setMessages(data.messages || []);
@@ -92,19 +93,16 @@ function ActivityRoomPage() {
     setInputText(''); // optimistic clear
 
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/send`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderId: user.id,
-          text: textToSend
-        })
+        body: JSON.stringify({ text: textToSend })
       });
 
       if (!res.ok) throw new Error('Failed to send message');
       
       // Fetch immediately to show the new message
-      const msgsRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/messages`);
+      const msgsRes = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/messages`);
       if (msgsRes.ok) {
         const msgsData = await msgsRes.json();
         setMessages(msgsData.messages || []);
@@ -119,10 +117,10 @@ function ActivityRoomPage() {
     if (!window.confirm("Are you sure that you want to end this conversation?")) return;
     
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({})
       });
       
       if (!res.ok) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import MatchCard from '../components/MatchCard';
 import ChatPanel from '../components/ChatPanel';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -36,8 +37,8 @@ function MatchesPage() {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
         const [matchesResponse, groupsResponse] = await Promise.all([
-          fetch(`${apiUrl}/api/matches/${user.id}`),
-          fetch(`${apiUrl}/api/chat/groups/${user.id}`)
+          apiFetch(`${apiUrl}/api/matches/${user.id}`),
+          apiFetch(`${apiUrl}/api/chat/groups/${user.id}`)
         ]);
         if (!matchesResponse.ok || !groupsResponse.ok) throw new Error('Failed to fetch chats');
         const [matchesData, groupsData] = await Promise.all([matchesResponse.json(), groupsResponse.json()]);
@@ -102,10 +103,10 @@ function MatchesPage() {
     setIsCreatingGroup(true);
     setGroupError(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/groups`, {
+      const response = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/chat/groups`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creatorId: user.id, name: groupName, memberIds: selectedMemberIds })
+        body: JSON.stringify({ name: groupName, memberIds: selectedMemberIds })
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not create the group chat.');

@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.78` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.79`, `4.80`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.79` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.80`, `4.81`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -27,11 +27,12 @@ The app currently displays version `v4.78` in the top-right of the navigation ba
 | Frontend | React, Vite, React Router |
 | Backend | Node.js, Express 5 |
 | Database | Cloud Firestore via Firebase Admin SDK |
-| Authentication | Google Identity Services |
+| Authentication | Google Identity Services, server-verified Google ID tokens, signed bearer sessions |
 | YouTube data | YouTube Data API v3 with `youtube.readonly` scope |
 | Interest embeddings | `@huggingface/transformers`, `Xenova/all-MiniLM-L6-v2` |
 | Frontend hosting | Vercel |
 | Backend hosting | Render |
+| API hardening | Helmet, exact-origin CORS, rate limits, server-side validation |
 | Styling | Plain CSS, custom dark/glassmorphism design system |
 
 ---
@@ -51,12 +52,15 @@ The app currently displays version `v4.78` in the top-right of the navigation ba
 │   └── index.css                # Design tokens and shared styles
 ├── server/                      # Express API
 │   ├── config/firebase.js       # Firebase Admin and Firestore setup
-│   ├── middleware/auth.js       # Unused development-only authentication middleware
+│   ├── middleware/auth.js       # Signed-session verification for protected API routes
 │   ├── routes/                  # auth, youtube, matches, chat endpoints
-│   ├── services/                # YouTube requests and semantic embeddings
+│   ├── services/                # YouTube requests, encrypted token vault, sessions, and embeddings
 │   └── index.js                 # Server setup and route registration
 ├── public/                      # Static files
 ├── .env.example                 # Required environment variables
+├── firestore.rules               # Deny-direct-client Firestore policy
+├── PUBLISHING_GUIDE.md           # Ordered public-launch implementation and owner checklist
+├── test/                         # Security regression tests
 ├── package.json                 # Scripts and dependencies
 └── ProjectDetails.md            # This project handoff document
 ```
@@ -103,6 +107,12 @@ Copy `.env.example` to `.env` for local work and fill in the values. Do not comm
 # Google OAuth client ID used by the Render API and exposed safely to the browser
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
+
+# Required production secrets. Do not commit their values.
+SESSION_JWT_SECRET=
+YOUTUBE_TOKEN_ENCRYPTION_KEY=
+# Exact, comma-separated browser origins allowed to call the API.
+CORS_ORIGINS=https://your-production-domain.com
 
 # Optional direct browser setting for local frontend-only development
 VITE_GOOGLE_CLIENT_ID=
@@ -216,8 +226,11 @@ The Express server is in `server/index.js`.
 
 Middleware:
 
-- `cors({ origin: true, credentials: true })`
-- JSON request parsing, up to 10 MB
+- Helmet security headers and disabled `X-Powered-By`
+- Exact-origin CORS allowlist from `CORS_ORIGINS` (local Vite origins only in non-production development)
+- General and sign-in rate limiters
+- JSON request parsing, up to 200 KB
+- Signed bearer-session authentication on protected endpoints
 - Generic JSON 500 error handler
 
 Health check:
@@ -236,20 +249,22 @@ Expected successful response:
 
 #### Authentication: `/api/auth`
 
+`GET /google-client-id` and `POST /google` are the only auth endpoints available without a Murmur session. All remaining API endpoints require `Authorization: Bearer <session token>` and derive the acting member from that verified session.
+
 | Method | Endpoint | Request | Response / purpose |
 | --- | --- | --- | --- |
 | `GET` | `/google-client-id` | None | Returns `{ "clientId": "..." }` from `GOOGLE_CLIENT_ID`; returns 503 when missing |
-| `POST` | `/google` | `{ "credential": "Google ID token" }` | Parses user identity, upserts basic user fields, returns `{ user }` |
-| `POST` | `/youtube-token` | `{ "accessToken", "userId" }` | Stores the token in memory for subsequent YouTube fetches |
+| `POST` | `/google` | `{ "credential": "Google ID token" }` | Verifies the Google token, upserts the member, and returns a safe user view plus signed session token |
+| `POST` | `/youtube-token` | `{ "accessToken" }` | Encrypts and stores the authenticated member's temporary YouTube token |
 | `GET` | `/profile/:userId` | None | Returns a public profile: name, avatar, onboarding state, profile details, liked-video analysis count, and category distribution; excludes email, raw YouTube data, and embeddings |
 | `PATCH` | `/profile/:userId` | `{ "profileDetails": { "location": { "id" }, "age", "gender", "description" } }` | Validates the selected canonical Class X/Y ID, writes its canonical city/state/country/tier values, and marks `detailsComplete: true` |
-| `POST` | `/youtube-refresh/skip` | `{ "userId" }` | Saves the returning member’s choice to continue with their last stored taste profile rather than refresh YouTube |
+| `POST` | `/youtube-refresh/skip` | `{}` | Saves the authenticated member’s choice to continue with their last stored taste profile rather than refresh YouTube |
 
 #### YouTube: `/api/youtube`
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/fetch` | `{ "userId" }` | Uses the stored user token to fetch liked videos and subscriptions |
+| `POST` | `/fetch` | `{}` | Uses the authenticated member's encrypted stored token to fetch liked videos and subscriptions |
 
 The endpoint currently retrieves up to four 50-item pages (200 likes and 200 subscriptions maximum). The server returns raw results plus `likedCount` and `subscriptionCount`.
 
@@ -257,8 +272,8 @@ The endpoint currently retrieves up to four 50-item pages (200 likes and 200 sub
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/compute` | `{ "userId", "likedVideos", "subscriptions" }` | Builds and timestamps the current taste profile, refreshes category candidates, and delivers up to five initial matches for a newly onboarded member |
-| `POST` | `/add` | `{ "userId", "otherUserId" }` | Adds an eligible discovered member to the requesting user’s Matches list and returns the calculated score |
+| `POST` | `/compute` | `{}` | Fetches the authenticated member's YouTube data server-side, then builds/timestamps their taste profile and refreshes candidates |
+| `POST` | `/add` | `{ "otherUserId" }` | Adds an eligible discovered member to the authenticated member's Matches list and returns the calculated score |
 | `GET` | `/:userId/:otherUserId` | None | Calculates the current user-to-user match score for display on a member profile |
 | `GET` | `/:userId` | None | Returns delivered matches, annotating unread and not-yet-started chats; when eligible, delivers one new undiscovered match for the day |
 
@@ -268,11 +283,11 @@ The profile embedding uses the first 50 liked videos received from YouTube, inte
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/send` | `{ "chatId", "senderId", "text", "clientMessageId?", "replyTo?": { "id", "text", "senderId?" } }` | Creates a message, optionally persists its reply context, and treats a repeated client delivery ID as the same message |
-| `POST` | `/groups` | `{ "creatorId", "name", "memberIds" }` | Creates a named group chat. Selected members must be matches of the creator; an empty selection creates a creator-only group. |
+| `POST` | `/send` | `{ "chatId", "text", "clientMessageId?", "replyTo?": { "id", "text", "senderId?" } }` | Creates a message only for an authenticated chat member, optionally persists reply context, and treats a repeated client delivery ID as the same message |
+| `POST` | `/groups` | `{ "name", "memberIds" }` | Creates a named group chat for the authenticated member. Selected members must be their matches; an empty selection creates a creator-only group. |
 | `GET` | `/groups/:userId` | None | Returns group chats that include the member, including unread and started-conversation status |
 | `GET` | `/:chatId/messages` | None | Fetches up to 100 messages, oldest first |
-| `POST` | `/:chatId/read` | `{ "userId" }` | Marks the chat’s latest message as read for that user |
+| `POST` | `/:chatId/read` | `{}` | Marks the chat’s latest message as read for the authenticated member |
 
 The navigation search window checks the existing public-profile endpoint before navigation. An empty, unknown, or unavailable ID presents the user-facing message `No such user exists`; a valid ID opens `/profile/:userId`.
 
@@ -280,14 +295,14 @@ The navigation search window checks the existing public-profile endpoint before 
 
 | Method | Endpoint | Request | Purpose |
 | --- | --- | --- | --- |
-| `POST` | `/create` | `{ "publisherId", "video", "participantLimit", "expiresInHours", "audience" }` | Creates a room with a 2–30 total-member capacity and either `public` or `matches` audience |
-| `GET` | `/?userId=...` | None | Returns active rooms created by the member or their matches, plus rooms the member joined through Discover; newest first |
-| `GET` | `/discover?userId=...&categoryId=...&q=...` | None | Returns live, joinable public rooms the member has not already joined, filtered by YouTube category and/or case-insensitive video-title substring; newest first |
-| `POST` | `/:activityId/join` | `{ "userId" }` | Adds an eligible member to a room and permits them to enter its chatroom |
+| `POST` | `/create` | `{ "video", "participantLimit", "expiresInHours", "audience" }` | Creates a room for the authenticated publisher with a 2–30 total-member capacity and either `public` or `matches` audience |
+| `GET` | `/` | None | Returns active rooms created by the authenticated member or their matches, plus rooms they joined through Discover; newest first |
+| `GET` | `/discover?categoryId=...&q=...` | None | Returns live, joinable public rooms the authenticated member has not already joined, filtered by category/title; newest first |
+| `POST` | `/:activityId/join` | `{}` | Adds the authenticated eligible member to a room and permits them to enter its chatroom |
 | `GET` | `/:activityId/details` | None | Returns a room and its participant profiles |
 | `GET` | `/:activityId/messages` | None | Returns the room’s messages, oldest first |
-| `POST` | `/:activityId/send` | `{ "senderId", "text" }` | Sends a message; the sender must already be a participant |
-| `DELETE` | `/:activityId` | `{ "userId" }` | Lets the creator end a room |
+| `POST` | `/:activityId/send` | `{ "text" }` | Sends a message; the authenticated sender must already be a participant |
+| `DELETE` | `/:activityId` | `{}` | Lets the authenticated creator end a room |
 
 ---
 
@@ -488,21 +503,21 @@ Enable YouTube Data API v3 and include the `youtube.readonly` scope in the OAuth
 
 This project is an MVP. An AI or developer taking it forward should treat the following as high-priority production work:
 
-1. **Authenticate API requests properly.** `server/routes/auth.js` parses Google ID-token payloads without verifying token signatures. `server/middleware/auth.js` also only decodes bearer tokens and is not mounted on routes. Use Firebase Auth or Google token verification on every protected endpoint.
-2. **Protect authorization boundaries.** The current chat, match, and YouTube endpoints trust submitted `userId`/`senderId` values. A user can potentially access or write another user’s resources.
-3. **Replace the in-memory YouTube token store.** Tokens disappear whenever Render restarts and do not work across multiple instances. Store encrypted refresh-token/session information securely, or request fresh access tokens as needed.
-4. **Synchronize profile data in the frontend.** After onboarding, `AuthContext.setOnboarded()` updates only `onboarded`; it does not update local `youtubeData`, so profile statistics may not reflect the stored backend profile until the next sign-in.
-5. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
-6. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
-7. **Define privacy and retention policy.** Member profiles now deliberately share aggregate liked-video counts and category breakdowns, while raw videos, subscriptions, email, and embeddings remain private. Add informed consent, deletion/export controls, retention rules, and secure Firestore rules before public launch.
-8. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
-9. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
-10. **Scale Discover search.** The MVP filters active public rooms in the backend to perform case-insensitive video-title substring results without exposing nonpublic rooms. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
-11. **Add tests.** There are currently no unit, integration, or end-to-end tests. Start with embedding/match-score tests, route tests, and an onboarding smoke test.
+1. **Complete the YouTube-token lifecycle.** Google sign-in is verified server-side, protected APIs use signed sessions, and short-lived YouTube access tokens are AES-256-GCM encrypted at rest. Add supported refresh-token handling, explicit YouTube disconnect/revocation, expiry recovery, deletion cleanup, and managed-key rotation before launch.
+2. **Deploy and independently verify access controls.** The repository now contains deny-all Firestore Rules, exact-origin CORS, rate limits, security headers, server-side ownership/membership checks, and basic security regression tests. Deploy the rules/configuration and perform a staging authorization review with separate accounts.
+3. **Improve error reporting.** Backend matching errors are reduced to a generic response. Surface safe, actionable errors and capture server logs/error monitoring.
+4. **Add loading timeouts/fallbacks.** The embedding model is downloaded/initialized on cold Render instances. Consider prewarming, baking model files into the deployment image, a hosted embeddings API, or a deterministic fallback.
+5. **Define privacy and retention policy.** Member profiles now deliberately share aggregate liked-video counts and category breakdowns, while raw videos, subscriptions, email, and embeddings remain private. Add informed consent, deletion/export controls, retention rules, and deploy the secure Firestore rules before public launch.
+6. **Add moderation and safety controls.** A people-matching product needs reporting, blocking, rate limiting, abuse prevention, and content moderation.
+7. **Scale matching further.** The app now limits expensive embedding scoring to 25 category-selected candidates, but still reads eligible Firestore profiles to form that category shortlist. Use indexed category representations, vector search/ANN retrieval, and queued jobs as membership grows.
+8. **Scale Discover search.** The MVP filters active public rooms in the backend to perform case-insensitive video-title substring results without exposing nonpublic rooms. As room volume grows, add a dedicated search service or an indexed token/prefix representation rather than scanning active room documents.
+9. **Expand tests.** Basic session, encryption, and unauthenticated-route regression tests plus CI are included. Add Firestore Emulator integration tests, end-to-end onboarding/messaging tests, accessibility tests, load tests, and security testing before launch.
 
 ---
 
 ## Publication readiness assessment (2026-07-18)
+
+The actionable, ordered publication checklist is maintained in [`PUBLISHING_GUIDE.md`](./PUBLISHING_GUIDE.md). It distinguishes repository-complete safeguards from account, legal, moderation, and launch-owner actions.
 
 **Status: not ready for a public launch.** The product flow and production frontend build work, but the backend currently accepts unverified identities and caller-supplied user IDs. This would allow an attacker to impersonate a member, read private messages, alter profiles, consume another member's YouTube session, or create/delete content as them. Do not expose the existing deployment publicly until the critical and high-priority gates below are complete and verified.
 
@@ -622,3 +637,4 @@ Murmur may proceed from a closed, supervised beta to a public release only after
 - `v4.76` (2026-07-18): Completed publication-readiness review; recorded the public-launch blockers, security/privacy/safety gates, dependency-audit findings, operational requirements, and minimum release exit criteria.
 - `v4.77` (2026-07-18): Refined the Matches workspace with cleaner hierarchy, calmer surfaces, polished chat bubbles, and improved compose states. Fixed replies by persisting reply context through the chat API and rendering it in every sent or received reply.
 - `v4.78` (2026-07-18): Made Matches messages resilient to slow server responses and polling races. New messages now stay visible immediately as local pending bubbles, reconcile when the server confirms them, support multiple concurrent sends, and expose safe retry handling backed by client delivery IDs.
+- `v4.79` (2026-07-18): Added the publication guide and release CI; implemented verified Google sign-in, signed API sessions, server-derived authorization, encrypted YouTube token storage, Firestore deny-direct-client rules, CORS/security/rate-limit hardening, request validation, and security regression tests.

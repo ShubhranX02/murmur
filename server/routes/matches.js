@@ -1,13 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const { db, firebaseInitError } = require('../config/firebase');
+const { authenticate } = require('../middleware/auth');
 const { batchEmbed, createUserEmbedding, computeMatchScore, cosineSimilarity, skewMatchScore, MATCH_SCORE_SCALE_VERSION } = require('../services/embedding');
-const { buildVideoText } = require('../services/youtube');
+const { buildVideoText, fetchLikedVideos, fetchSubscriptions } = require('../services/youtube');
+const { decryptToken } = require('../services/tokenVault');
 
 const MAX_PROFILE_VIDEOS = 50;
 const CATEGORY_CANDIDATE_LIMIT = 25;
 const INITIAL_MATCH_LIMIT = 5;
 const MATCH_DELIVERIES = 'matchDeliveries';
+
+router.use(authenticate);
 
 function firestoreUnavailable(res) {
   const setupHint = firebaseInitError ? ' Firebase Admin credentials are missing or invalid.' : '';
@@ -208,13 +212,22 @@ async function listDeliveredMatches(userId) {
 
 router.post('/compute', async (req, res) => {
   try {
-    const { userId, likedVideos, subscriptions } = req.body;
-    if (!userId || !likedVideos || !subscriptions) return res.status(400).json({ error: 'Missing required data' });
+    const userId = req.auth.userId;
     if (!db) return firestoreUnavailable(res);
 
     const userRef = db.collection('users').doc(userId);
     const existingUserDoc = await runFirestore(() => userRef.get());
     const existingUser = existingUserDoc.exists ? existingUserDoc.data() : {};
+    const accessToken = decryptToken(existingUser.youtubeAccessToken);
+    if (!accessToken) return res.status(401).json({ error: 'Your YouTube connection has expired. Please reconnect YouTube.' });
+
+    // Matching data is fetched directly from YouTube with the authenticated
+    // member's encrypted token. The browser never gets to submit arbitrary
+    // liked videos or subscriptions to influence its compatibility profile.
+    const [likedVideos, subscriptions] = await Promise.all([
+      fetchLikedVideos(accessToken),
+      fetchSubscriptions(accessToken)
+    ]);
     const profileVideos = likedVideos.slice(0, MAX_PROFILE_VIDEOS);
     const videoEmbeddings = await batchEmbed(profileVideos.map(buildVideoText));
     const categoryDistribution = {};
@@ -270,6 +283,7 @@ router.post('/compute', async (req, res) => {
 router.get('/:userId/:otherUserId', async (req, res) => {
   try {
     const { userId, otherUserId } = req.params;
+    if (userId !== req.auth.userId) return res.status(403).json({ error: 'You can only view your own match score.' });
     if (!db) return firestoreUnavailable(res);
     const [userDoc, otherUserDoc] = await Promise.all([db.collection('users').doc(userId).get(), db.collection('users').doc(otherUserId).get()]);
     if (!userDoc.exists || !otherUserDoc.exists || !isEligibleProfile(userDoc.data()) || !isEligibleProfile(otherUserDoc.data())) {
@@ -287,7 +301,8 @@ router.get('/:userId/:otherUserId', async (req, res) => {
 // Lets a member add an eligible profile they discovered to their own Matches list.
 router.post('/add', async (req, res) => {
   try {
-    const { userId, otherUserId } = req.body;
+    const { otherUserId } = req.body;
+    const userId = req.auth.userId;
     if (!userId || !otherUserId || userId === otherUserId) {
       return res.status(400).json({ error: 'Choose another member to add to your matches.' });
     }
@@ -321,6 +336,7 @@ router.post('/add', async (req, res) => {
 router.get('/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
+    if (userId !== req.auth.userId) return res.status(403).json({ error: 'You can only view your own matches.' });
     if (!db) return firestoreUnavailable(res);
     const userDoc = await runFirestore(() => db.collection('users').doc(userId).get());
     if (!userDoc.exists || !isEligibleProfile(userDoc.data())) return res.json({ matches: [], totalMatches: 0 });

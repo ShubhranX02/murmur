@@ -1,14 +1,18 @@
 const express = require('express');
 const router = express.Router();
+const { OAuth2Client } = require('google-auth-library');
+const { z } = require('zod');
 const { db } = require('../config/firebase');
 const indiaXyCities = require('../../src/data/indiaXyCities.json');
-
-// Simple in-memory token store for development
-// In production, encrypt this and store in a proper database linked to the session
-const tokenStore = new Map();
+const { createSession } = require('../services/session');
+const { encryptToken } = require('../services/tokenVault');
+const { authenticate } = require('../middleware/auth');
 
 const PROFILE_GENDERS = new Set(['Male', 'Female', 'Other']);
 const YOUTUBE_DATA_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
+const googleClient = new OAuth2Client();
+const credentialSchema = z.object({ credential: z.string().min(20).max(10000) });
+const tokenSchema = z.object({ accessToken: z.string().min(20).max(10000) });
 
 function toDate(value) {
   if (!value) return null;
@@ -47,6 +51,21 @@ function getPublicProfile(userId, data) {
       likedVideoCount: Number(data.youtubeData?.likedVideoCount) || 0
     },
     categoryDistribution: data.categoryDistribution || {}
+  };
+}
+
+function getSessionUser(userId, data) {
+  return {
+    id: userId,
+    displayName: data.displayName || 'Murmur member',
+    photoURL: data.photoURL || null,
+    onboarded: Boolean(data.onboarded),
+    detailsComplete: Boolean(data.detailsComplete),
+    profileDetails: data.profileDetails || null,
+    youtubeData: serialiseYoutubeData(data.youtubeData),
+    categoryDistribution: data.categoryDistribution || {},
+    youtubeRefreshSkipped: Boolean(data.youtubeRefreshSkipped),
+    requiresYouTubeRefresh: needsYoutubeRefresh(data) && !data.youtubeRefreshSkipped
   };
 }
 
@@ -99,69 +118,37 @@ router.get('/google-client-id', (req, res) => {
 
 router.post('/google', async (req, res) => {
   try {
-    const { credential } = req.body;
-    if (!credential) {
-      return res.status(400).json({ error: 'No credential provided' });
-    }
+    const parsed = credentialSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'A valid Google credential is required.' });
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return res.status(503).json({ error: 'Google sign-in is not configured.' });
 
-    // Very basic JWT parsing (NOT for production validation)
-    // Production should use google-auth-library to verify the ID token
-    const parts = credential.split('.');
-    if (parts.length !== 3) {
-      return res.status(400).json({ error: 'Invalid credential format' });
-    }
+    const ticket = await googleClient.verifyIdToken({ idToken: parsed.data.credential, audience: clientId });
+    const payload = ticket.getPayload();
+    const { sub, name, email, picture, email_verified: emailVerified } = payload || {};
 
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-    const { sub, name, email, picture } = payload;
+    if (!sub || !email || !emailVerified) return res.status(401).json({ error: 'Google could not verify this account.' });
 
-    if (!sub) {
-      return res.status(400).json({ error: 'Invalid token payload' });
-    }
-
-    let userObj = {
-      id: sub,
+    if (!db) return profileUnavailable(res);
+    const userRef = db.collection('users').doc(sub);
+    const doc = await userRef.get();
+    const updateData = {
       displayName: name,
-      email: email,
+      email,
       photoURL: picture,
-      onboarded: false,
-      detailsComplete: false
+      updatedAt: new Date()
     };
 
-    try {
-      if (db) {
-        const userRef = db.collection('users').doc(sub);
-        const doc = await userRef.get();
-        
-        const updateData = {
-          displayName: name,
-          email: email,
-          photoURL: picture,
-          updatedAt: new Date()
-        };
-
-        if (!doc.exists) {
-          updateData.onboarded = false;
-          updateData.detailsComplete = false;
-          updateData.createdAt = new Date();
-        } else {
-          const docData = doc.data();
-          userObj = { ...docData, ...userObj }; // merge Firestore data
-          userObj.onboarded = docData.onboarded || false;
-          userObj.detailsComplete = docData.detailsComplete || false;
-          userObj.youtubeData = serialiseYoutubeData(docData.youtubeData);
-          userObj.requiresYouTubeRefresh = needsYoutubeRefresh(docData) && !docData.youtubeRefreshSkipped;
-        }
-
-        await userRef.set(updateData, { merge: true });
-      }
-    } catch (dbError) {
-      console.warn('Firestore not configured or failed, proceeding with in-memory user', dbError);
+    const existingUser = doc.exists ? doc.data() : {};
+    if (!doc.exists) {
+      updateData.onboarded = false;
+      updateData.detailsComplete = false;
+      updateData.createdAt = new Date();
     }
 
-    userObj.requiresYouTubeRefresh = userObj.requiresYouTubeRefresh ?? (needsYoutubeRefresh(userObj) && !userObj.youtubeRefreshSkipped);
-    userObj.youtubeData = serialiseYoutubeData(userObj.youtubeData);
-
-    res.json({ user: userObj });
+    await userRef.set(updateData, { merge: true });
+    const user = getSessionUser(sub, { ...existingUser, ...updateData });
+    res.json({ user, sessionToken: createSession(sub) });
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).json({ error: 'Authentication failed' });
@@ -169,7 +156,7 @@ router.post('/google', async (req, res) => {
 });
 
 // Public profile data intentionally excludes email, embeddings, and YouTube data.
-router.get('/profile/:userId', async (req, res) => {
+router.get('/profile/:userId', authenticate, async (req, res) => {
   try {
     if (!db) return profileUnavailable(res);
 
@@ -185,9 +172,10 @@ router.get('/profile/:userId', async (req, res) => {
   }
 });
 
-router.patch('/profile/:userId', async (req, res) => {
+router.patch('/profile/:userId', authenticate, async (req, res) => {
   try {
     if (!db) return profileUnavailable(res);
+    if (req.params.userId !== req.auth.userId) return res.status(403).json({ error: 'You can only edit your own profile.' });
 
     let profileDetails;
     try {
@@ -218,13 +206,11 @@ router.patch('/profile/:userId', async (req, res) => {
 
 // A returning member can keep using Murmur with their last saved taste profile
 // when they choose not to refresh YouTube after the seven-day reminder.
-router.post('/youtube-refresh/skip', async (req, res) => {
+router.post('/youtube-refresh/skip', authenticate, async (req, res) => {
   try {
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
     if (!db) return profileUnavailable(res);
 
-    const userRef = db.collection('users').doc(userId);
+    const userRef = db.collection('users').doc(req.auth.userId);
     const userDoc = await userRef.get();
     if (!userDoc.exists) return res.status(404).json({ error: 'This profile could not be found.' });
 
@@ -236,14 +222,21 @@ router.post('/youtube-refresh/skip', async (req, res) => {
   }
 });
 
-router.post('/youtube-token', (req, res) => {
-  const { accessToken, userId } = req.body;
-  if (!accessToken || !userId) {
-    return res.status(400).json({ error: 'Missing token or userId' });
+router.post('/youtube-token', authenticate, async (req, res) => {
+  const parsed = tokenSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'A valid YouTube access token is required.' });
+  if (!db) return profileUnavailable(res);
+
+  try {
+    await db.collection('users').doc(req.auth.userId).set({
+      youtubeAccessToken: encryptToken(parsed.data.accessToken),
+      updatedAt: new Date()
+    }, { merge: true });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('YouTube token storage error:', error);
+    return res.status(500).json({ error: 'Could not securely store the YouTube connection.' });
   }
-  
-  tokenStore.set(userId, accessToken);
-  res.json({ success: true });
 });
 
-module.exports = { router, tokenStore };
+module.exports = { router };

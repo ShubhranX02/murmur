@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import ChatBubble from './ChatBubble';
 import MatchScore from './MatchScore';
 import './ChatPanel.css';
@@ -36,13 +37,13 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
     if (!chatId || !user) return undefined;
     const fetchMessages = async () => {
       try {
-        const res = await fetch(`${apiUrl}/api/chat/${chatId}/messages`);
+        const res = await apiFetch(`${apiUrl}/api/chat/${chatId}/messages`);
         if (!res.ok) return;
         const data = await res.json();
         const nextMessages = data.messages || [];
         setServerMessages(nextMessages);
         if (nextMessages.some(message => message.senderId !== user.id)) {
-          fetch(`${apiUrl}/api/chat/${chatId}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId: user.id }) }).catch(console.error);
+          apiFetch(`${apiUrl}/api/chat/${chatId}/read`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).catch(console.error);
         }
       } catch (error) { console.error('Failed to fetch messages:', error); }
     };
@@ -53,12 +54,11 @@ function ChatPanel({ match, isSidebarCollapsed, onToggleSidebar }) {
 
   const deliverMessage = async optimisticMessage => {
     try {
-      const response = await fetch(`${apiUrl}/api/chat/send`, {
+      const response = await apiFetch(`${apiUrl}/api/chat/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chatId,
-          senderId: user.id,
           text: optimisticMessage.text,
           replyTo: optimisticMessage.replyTo,
           clientMessageId: optimisticMessage.clientMessageId

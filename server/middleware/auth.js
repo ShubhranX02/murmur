@@ -1,33 +1,18 @@
+const { verifySession } = require('../services/session');
+
 function authenticate(req, res, next) {
-  const authHeader = req.headers.authorization;
-  let userId = null;
-
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.substring(7);
-    try {
-      // Very basic JWT parsing for extraction (NOT secure for production, just for dev/demo)
-      // In production, you would verify this token against Google or Firebase Auth
-      const parts = token.split('.');
-      if (parts.length === 3) {
-        const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
-        userId = payload.sub || payload.user_id;
-      }
-    } catch (e) {
-      console.warn('Failed to parse bearer token, falling back to headers', e);
-    }
-  }
-  
-  if (!userId) {
-    // Fallback for development/testing
-    userId = req.headers['x-user-id'];
+  const authHeader = req.headers.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Sign in is required.' });
   }
 
-  if (!userId) {
-    return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const userId = verifySession(authHeader.slice(7));
+    req.auth = { userId };
+    return next();
+  } catch (error) {
+    return res.status(401).json({ error: 'Your session has expired. Please sign in again.' });
   }
-
-  req.userId = userId;
-  next();
 }
 
 module.exports = { authenticate };

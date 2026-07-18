@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { apiFetch } from '../lib/api';
 import LoadingSpinner from '../components/LoadingSpinner';
 import './ActivityFeedPage.css';
 
@@ -19,7 +20,7 @@ function ActivityFeedPage() {
 
     const fetchActivities = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities?userId=${user.id}`);
+        const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities`);
         if (!res.ok) throw new Error('Failed to fetch activities');
         
         const data = await res.json();
@@ -37,10 +38,10 @@ function ActivityFeedPage() {
 
   const handleJoin = async (activityId) => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/join`, {
+      const res = await apiFetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/activities/${activityId}/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
+        body: JSON.stringify({})
       });
       
       const data = await res.json();

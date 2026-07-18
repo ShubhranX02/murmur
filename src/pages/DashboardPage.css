@@ -255,13 +255,122 @@
   text-decoration: underline;
 }
 
-.algorithm-empty {
+.algorithm-container {
   display: grid;
-  min-height: 280px;
-  place-items: center;
-  color: var(--text-secondary);
-  font-size: 17px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 30px;
+  margin-top: 24px;
+  width: 100%;
 }
+
+.algorithm-column {
+  min-height: 550px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Red-themed glowing effect for algorithm columns */
+.algorithm-column:hover {
+  transform: translateY(-4px);
+  border-color: rgba(229, 57, 53, 0.45);
+  box-shadow: 0 0 30px rgba(229, 57, 53, 0.18);
+}
+
+.algorithm-design-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 15px;
+}
+
+.algorithm-heart-image {
+  max-width: 320px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: screen; /* Blend out black background */
+  filter: drop-shadow(0 0 20px rgba(229, 57, 53, 0.65));
+}
+
+.algorithm-subscript-wrapper {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: -10px;
+}
+
+.algorithm-text-image {
+  max-width: 240px; /* subscript size relative to heart design */
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: screen; /* Blend out black background */
+}
+
+.algorithm-placeholder-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 20px;
+  color: var(--text-secondary);
+}
+
+.algorithm-glow-icon {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: var(--primary-light);
+  filter: drop-shadow(0 0 12px rgba(229, 57, 53, 0.8));
+  animation: float 4s ease-in-out infinite;
+}
+
+.algorithm-placeholder-content h3 {
+  color: var(--text-primary);
+  font-size: 24px;
+  margin-bottom: 15px;
+}
+
+.algorithm-placeholder-content p {
+  font-size: 15px;
+  line-height: 1.6;
+  max-width: 380px;
+}
+
+.algorithm-coming-soon-badge {
+  margin-top: 30px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  background: rgba(229, 57, 53, 0.15);
+  border: 1px solid rgba(229, 57, 53, 0.3);
+  color: var(--primary-light);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Mobile responsive layout */
+@media (max-width: 860px) {
+  .algorithm-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .algorithm-column {
+    min-height: 450px;
+    padding: 30px 20px;
+  }
+}
+
 
 .find-form {
   width: 100%;

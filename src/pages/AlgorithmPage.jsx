@@ -20,7 +20,32 @@ function AlgorithmPage() {
   return (
     <div className="algorithm-page animate-fade-in-up">
       <h1>The Algorithm</h1>
-      <div className="algorithm-empty glass">Coming soon</div>
+      <div className="algorithm-container">
+        <div className="algorithm-column left glass">
+          <div className="algorithm-design-wrapper">
+            <img 
+              src="/heart_glowing.png" 
+              alt="Glow Heart Design" 
+              className="algorithm-heart-image" 
+            />
+            <div className="algorithm-subscript-wrapper">
+              <img 
+                src="/recent_likes_text.png" 
+                alt="YouTube match explanation" 
+                className="algorithm-text-image" 
+              />
+            </div>
+          </div>
+        </div>
+        <div className="algorithm-column right glass">
+          <div className="algorithm-placeholder-content">
+            <div className="algorithm-glow-icon">⚡</div>
+            <h3>Category Compatibility</h3>
+            <p>We analyze the distribution of YouTube categories in your liked videos and subscriptions, correlating your vibe across standard genres like Music, Gaming, Tech, and more to calculate a multi-dimensional affinity score.</p>
+            <div className="algorithm-coming-soon-badge">Coming Soon</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

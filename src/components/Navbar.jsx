@@ -61,7 +61,8 @@ function Navbar() {
     <nav className="navbar">
       <div className="navbar-container">
         <Link to="/" className="navbar-logo">
-          murmur
+          <img src="/logo.jpg" alt="Murmur Logo" className="navbar-brand-logo" />
+          Murmur
         </Link>
 
         <div className="navbar-actions">

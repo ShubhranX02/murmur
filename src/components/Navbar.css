@@ -29,6 +29,15 @@
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.navbar-brand-logo {
+  height: 32px;
+  width: auto;
+  border-radius: 8px;
 }
 
 .navbar-actions,

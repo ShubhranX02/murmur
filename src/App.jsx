@@ -12,6 +12,8 @@ import ActivityRoomPage from './pages/ActivityRoomPage';
 import DashboardPage from './pages/DashboardPage';
 import AlgorithmPage from './pages/AlgorithmPage';
 import FindPage from './pages/FindPage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import './App.css';
 
 function App() {
@@ -36,6 +38,8 @@ function App() {
               <Route path="/chat/:matchId" element={<ChatPage />} />
               <Route path="/profile" element={<ProfilePage />} />
               <Route path="/profile/:userId" element={<ProfilePage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPolicyPage />} />
             </Routes>
           </main>
         </div>

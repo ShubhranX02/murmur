@@ -362,7 +362,7 @@ function OnboardingPage() {
               <div className="details-row">
                 <label>
                   Age
-                  <input type="number" min="13" max="120" value={profileDetails.age} onChange={event => updateDetail('age', event.target.value)} required />
+                  <input type="number" min="18" max="120" value={profileDetails.age} onChange={event => updateDetail('age', event.target.value)} required />
                 </label>
                 <label>
                   Gender

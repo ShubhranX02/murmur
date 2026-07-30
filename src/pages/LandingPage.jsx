@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Footer from '../components/Footer';
 import './LandingPage.css';
 
 function LandingPage() {
@@ -62,6 +63,8 @@ function LandingPage() {
           </div>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }

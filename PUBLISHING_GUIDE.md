@@ -4,10 +4,34 @@ This is the release checklist for taking Murmur from a local MVP to a safe, supp
 
 ## 1. Establish the launch boundary
 
-1. **Owner action:** Choose the first release audience, countries, supported devices/browsers, support hours, expected member count, and whether the release is a closed beta or public launch.
-2. **Owner action:** Choose an age policy before admitting users. The recommended initial policy is adults-only (18+) until age assurance, safeguarding, and age-appropriate matching have been designed and independently reviewed.
-3. **Owner action:** Appoint an owner for security, privacy, moderation, incident response, and support. A social/messaging product cannot safely launch without named operators.
-4. Record these decisions in the launch ticket and do not move to public launch until all later gates are signed off.
+1. **Recorded (2026-07-18):** India is the sole first-release market. Murmur will publicly launch to members using desktop computers, laptops, and phones, with an expected 2,000–4,000 members.
+2. **Recorded (2026-07-18):** Murmur is adults-only (18+). **Launch blocker:** the present server validation accepts ages 13–120. Before any public onboarding, enforce a minimum age of 18 server-side, remediate any existing under-18 accounts, and ensure matching cannot include minors.
+3. **Partially recorded (2026-07-18):** The founders are the launch owners. Before approval, record both founders' full names, titles, private operational contacts, time zones, and a primary plus backup assignment for release approval, engineering/on-call and rollback, security incidents, privacy/data-rights requests, trust and safety/moderation, member support, legal/vendor coordination, and cloud-account administration. Record support hours, incident-response targets, an absence escalation path, and the launch sign-off method.
+4. **Owner action:** Define the supported-browser/device matrix for desktops, laptops, and phones; test it before release and publish it in help/support materials. At minimum, plan coverage for current and previous major Chrome, Safari, Edge, and Firefox releases where supported, Android Chrome, and iPhone Safari.
+5. **Owner action:** Load-test and capacity-plan at the 4,000-member ceiling, including YouTube quota, model processing, Firestore reads/writes, polling, moderation, support, and incident response. Replace or mitigate the current full-member matching scan and Discover room scan before public scale.
+6. Record these decisions in the launch ticket and do not move to public launch until all later gates are signed off. Use this record:
+
+   ```text
+   Launch ticket: Murmur public launch — India
+   Status: Blocked pending public-launch exit criteria
+   Market: India only
+   Launch type: Public
+   Audience: Adults aged 18+ only
+   Supported devices: Desktops, laptops, phones
+   Supported browsers: [owner to complete]
+   Capacity: 2,000–4,000 members; plan and test to 4,000
+   Product/release owner: [founder name, contact]
+   Engineering/on-call and rollback owner: [primary / backup]
+   Security incident owner: [primary / backup]
+   Privacy/data-rights owner: [primary / backup]
+   Trust & safety/moderation owner: [primary / backup]
+   Member support owner and hours: [primary / backup / hours]
+   Legal/vendor and cloud-account owner: [primary / backup]
+   Critical incident target and absence escalation: [owner to complete]
+   Required gate: Server-enforced 18+ age policy and under-18 account remediation
+   Required gate: 4,000-member capacity and load-test evidence
+   Approval record: [product, security, privacy/legal, operations sign-offs]
+   ```
 
 ## 2. Configure production accounts and secrets
 

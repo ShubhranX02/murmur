@@ -40,7 +40,7 @@ function ProfilePage() {
   const [matchScore, setMatchScore] = useState(null);
   const [isMatched, setIsMatched] = useState(false);
   const [isAddingMatch, setIsAddingMatch] = useState(false);
-
+  const [isDeleting, setIsDeleting] = useState(false);
   useEffect(() => {
     if (!user) {
       navigate('/', { replace: true });
@@ -104,6 +104,25 @@ function ProfilePage() {
   const handleSignOut = () => {
     signOut();
     navigate('/');
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    setIsDeleting(true);
+    setError(null);
+    try {
+      const response = await apiFetch(`${apiUrl}/api/auth/profile`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to delete account.');
+      }
+      handleSignOut();
+    } catch (err) {
+      setError(err.message || 'Failed to delete account.');
+      setIsDeleting(false);
+    }
   };
 
   const updateDetail = (field, value) => {
@@ -222,7 +241,7 @@ function ProfilePage() {
                 <label>City in India<IndiaLocationPicker location={formDetails.location} onChange={location => updateDetail('location', location)} /></label>
               </div>
               <div className="profile-form-row">
-                <label>Age<input type="number" min="13" max="120" value={formDetails.age} onChange={event => updateDetail('age', event.target.value)} required /></label>
+                <label>Age<input type="number" min="18" max="120" value={formDetails.age} onChange={event => updateDetail('age', event.target.value)} required /></label>
                 <label>Gender<select value={formDetails.gender} onChange={event => updateDetail('gender', event.target.value)} required><option value="" disabled>Select one</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></label>
               </div>
               <label>Description (optional) <span>{descriptionWords}/100 words</span><textarea value={formDetails.description} onChange={event => updateDetail('description', event.target.value)} rows="5" /></label>
@@ -260,7 +279,14 @@ function ProfilePage() {
           <div className="glass padding-24 text-center mt-24"><p className="text-muted">You haven't connected your YouTube account yet.</p><button className="btn-primary mt-16" onClick={() => navigate('/onboarding')}>Connect YouTube Now</button></div>
         ) : null}
 
-        {isOwnProfile && <div className="profile-actions"><button className="btn-secondary signout-btn" onClick={handleSignOut}>Sign Out</button></div>}
+        {isOwnProfile && (
+          <div className="profile-actions" style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+            <button className="btn-secondary signout-btn" onClick={handleSignOut}>Sign Out</button>
+            <button className="btn-secondary delete-account-btn" onClick={handleDeleteAccount} disabled={isDeleting} style={{ borderColor: 'var(--yt-red)', color: 'var(--yt-red)' }}>
+              {isDeleting ? 'Deleting...' : 'Delete Account'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

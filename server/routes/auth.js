@@ -79,8 +79,8 @@ function normalizeProfileDetails(details = {}) {
   if (!location) {
     throw new Error('Choose a city from the available Class X or Class Y locations.');
   }
-  if (!Number.isInteger(age) || age < 13 || age > 120) {
-    throw new Error('Enter an age between 13 and 120.');
+  if (!Number.isInteger(age) || age < 18 || age > 120) {
+    throw new Error('You must be at least 18 years old to use Murmur.');
   }
   if (!PROFILE_GENDERS.has(gender)) {
     throw new Error('Choose Male, Female, or Other.');
@@ -236,6 +236,17 @@ router.post('/youtube-token', authenticate, async (req, res) => {
   } catch (error) {
     console.error('YouTube token storage error:', error);
     return res.status(500).json({ error: 'Could not securely store the YouTube connection.' });
+  }
+});
+
+router.delete('/profile', authenticate, async (req, res) => {
+  if (!db) return profileUnavailable(res);
+  try {
+    await db.collection('users').doc(req.auth.userId).delete();
+    return res.json({ success: true, message: 'Account deleted successfully' });
+  } catch (error) {
+    console.error('Account deletion error:', error);
+    return res.status(500).json({ error: 'Failed to delete account' });
   }
 });
 

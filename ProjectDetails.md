@@ -16,7 +16,7 @@ The current user journey is:
 6. The user selects their Indian Class X or Class Y city, then adds their age, gender, and optionally a short description before entering the app.
 7. The user enters the Dashboard, then can use the leftmost navigation search icon to find a member by Murmur ID; use Discover to open a category or title-search results view of public conversations they have not already joined; and access The Algorithm, Conversations, Matches, Dashboard, and their profile from the navigation bar.
 
-The app currently displays version `v4.80` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.81`, `4.82`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
+The app currently displays version `v4.81` in the top-right of the navigation bar. Increment `src/config/appVersion.js` for every code change using two-digit minor versions: `4.82`, `4.83`, … `4.99`, after which it rolls over to `5.00`. Report the new version number to the user whenever a code change is delivered.
 
 ---
 
@@ -561,6 +561,25 @@ Murmur may proceed from a closed, supervised beta to a public release only after
 
 ---
 
+## Launch boundary record (2026-07-18)
+
+The following first-release decisions have been made and must be copied into the launch ticket:
+
+| Area | Decision | Release implication |
+| --- | --- | --- |
+| Market | India only | Legal, privacy, support, moderation, payment (if added), and operational decisions must be assessed for India before public release. |
+| Launch type | Public launch | The public URL must remain gated until every public-launch exit criterion is complete; a supervised beta is not a substitute for these gates. |
+| Supported devices | Desktop computers, laptops, and phones | Test the current and previous major versions of Chrome, Safari, Edge, and Firefox where supported, plus representative Android Chrome and iPhone Safari devices. Publish the supported-browser policy in the help/support materials. |
+| Expected membership | 2,000–4,000 members | Load-test at the 4,000-member planning ceiling and account for polling, YouTube API quota, Firestore reads/writes, model processing, support volume, moderation, and incident response. The present full-member matching scan and Discover scan require a scale plan before launch. |
+| Minimum age | 18+ only | This is a launch blocker until server-side age validation rejects ages below 18, existing under-18 accounts are remediated, age-policy copy and reporting/escalation procedures are live, and matching cannot include minors. The current implementation still permits ages 13–120. |
+| Launch owners | Founder and co-founder | Names, role assignments, contact routes, support hours, escalation coverage, and a backup/deputy must be entered in the launch ticket before approval. |
+
+### Launch-owner information still required
+
+For each founder, record their full name, Murmur role/title, a private operational contact method, and their time zone. Assign exactly one primary and one backup owner for each of the following: product/release approval, engineering/on-call and rollback, security incident response, privacy/data-rights requests, trust and safety/moderation, member support, legal/vendor coordination, and Google/Firebase/Render/Vercel account administration. Also record support hours, the critical-incident response target, the escalation path when both founders are unavailable, and the final written launch-approval sign-off method.
+
+---
+
 ## Working conventions for future changes
 
 - Use `src/main.jsx`, not the unused TypeScript starter entry point.
@@ -641,3 +660,4 @@ Murmur may proceed from a closed, supervised beta to a public release only after
 - `v4.78` (2026-07-18): Made Matches messages resilient to slow server responses and polling races. New messages now stay visible immediately as local pending bubbles, reconcile when the server confirms them, support multiple concurrent sends, and expose safe retry handling backed by client delivery IDs.
 - `v4.79` (2026-07-18): Added the publication guide and release CI; implemented verified Google sign-in, signed API sessions, server-derived authorization, encrypted YouTube token storage, Firestore deny-direct-client rules, CORS/security/rate-limit hardening, request validation, and security regression tests.
 - `v4.80` (2026-07-18): Documented the Render production-startup remediation for the required exact-origin `CORS_ORIGINS` setting.
+- `v4.81` (2026-07-18): Recorded the India-only, public, desktop/laptop/phone, 2,000–4,000-member, adults-only launch boundary; documented the required founder ownership details and the pre-launch 18+ enforcement gate.

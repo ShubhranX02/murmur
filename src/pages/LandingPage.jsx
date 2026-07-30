@@ -24,11 +24,11 @@ function LandingPage() {
 
       <section className="hero-section">
         <div className="hero-content">
-          <h1 className="hero-title animate-fade-in-up" style={{ animationDelay: '0s' }}>murmur</h1>
+          <h1 className="hero-title animate-fade-in-up" style={{ animationDelay: '0s' }}>Murmur</h1>
           <div className="hero-divider animate-fade-in-up" style={{ animationDelay: '0.2s' }}></div>
           <h2 className="hero-subtitle animate-fade-in-up" style={{ animationDelay: '0.4s' }}>connect through what you watch</h2>
           <p className="hero-description animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-            Discover people who share your passions through your YouTube feed. No bios, no swiping — just genuine connections built on what you actually love.
+            Murmur is a social application designed to help you meet people with similar interests. We request read-only access to your YouTube liked videos and subscriptions strictly to generate an AI-powered compatibility score with other members. No bios, no swiping — just genuine connections built on what you actually love.
           </p>
           
           <div className="signin-container animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
@@ -46,8 +46,8 @@ function LandingPage() {
         <div className="features-grid">
           <div className="feature-card glass animate-fade-in-up" style={{ animationDelay: '1s' }}>
             <div className="feature-icon">🎬</div>
-            <h3>YouTube Powered</h3>
-            <p>We analyze your liked videos and subscriptions to understand your unique taste.</p>
+            <h3>How We Use Your Data</h3>
+            <p>We securely read your YouTube liked videos and subscriptions to calculate a private taste profile. This data is used solely for matching and is never made public.</p>
           </div>
           
           <div className="feature-card glass animate-fade-in-up" style={{ animationDelay: '1.2s' }}>

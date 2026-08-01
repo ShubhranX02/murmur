@@ -12,6 +12,7 @@ const chatRoutes = require('./routes/chat');
 const activitiesRoutes = require('./routes/activities');
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 function getAllowedOrigins() {

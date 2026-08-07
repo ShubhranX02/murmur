@@ -20,6 +20,20 @@ The app currently displays version `v1.00` in the top-right of the navigation ba
 
 ---
 
+## Mission, Vision, and Core Values
+
+The WHO Commission on Social Connection found that 1 in 6 people worldwide is affected by loneliness, and loneliness is linked to an estimated 100 deaths every hour, which translates to more than 871,000 deaths annually. Around 79% of Gen Z report feelings of isolation, compared with 71% of Millennials and 50% of Baby Boomers (Cigna 2020 U.S. Loneliness Index). The U.S. Surgeon General's 2023 advisory famously stated that lacking social connection is as dangerous as smoking up to 15 cigarettes a day. 17% of Americans now report having zero close friends, up from just 1% in 1990 (Survey Center on American Life's "American Perspectives Survey"). 
+
+Although this data is largely from the US, it highlights the fact that loneliness is at an all-time high, and it still continues to rise. One of the main reasons why people experience loneliness today more than ever has been due to technology becoming an essential part of our day-to-day lives. People spend significantly more time interacting with their phones rather than interacting with other people. The average person spends two to three hours every day across all social media platforms. The main contributor of this massive figure has been short-form content: Instagram Reels, TikTok, Youtube Shorts, and many more.
+
+However, we want to change this: these technologies that have caused so much isolation, we want to use them so as to eliminate isolation and the prevalent loneliness. 
+
+Throughout history, the friends we make have been largely influenced by the environment that we are in. At school, we make friends who study at the same school. We make friends with those who naturally come up in our lives. However, it’s tougher for us to build those ideal friendships that we see in movies in our real lives. The result of this is that our friendships often feel meaningless, and they end as soon as we leave that common environment. Aristotle stated that the only friendships that are enduring and lifelong are friendships of virtue, wherein the bond is based on mutual respect and admiration for each other’s character. We want to help foster such friendships.
+
+Our long term vision is to eradicate this loneliness epidemic and the scary addiction to technology by helping foster meaningful relationships.
+
+---
+
 ## Technology stack
 
 | Area | Technology |
